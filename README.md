@@ -1,12 +1,26 @@
 # PgControl
 
+[![CI](https://github.com/fatihemre/pg-control/actions/workflows/ci.yml/badge.svg)](https://github.com/fatihemre/pg-control/actions/workflows/ci.yml)
+[![Docker Hub](https://img.shields.io/docker/v/fatihemre/pgcontrol?label=docker&sort=semver)](https://hub.docker.com/r/fatihemre/pgcontrol)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![PostgreSQL 14–18](https://img.shields.io/badge/PostgreSQL-14%20%E2%80%93%2018-336791?logo=postgresql&logoColor=white)
+
 Self-hosted governance panel for PostgreSQL. Not a query tool — PgControl answers
 questions like *"why can't `reservation_api` insert into `sch_reservation.reservations`?"*
 by showing the full chain: role membership → inherited privileges → schema → object → **final access**.
 
-Scope: users & roles, permissions, effective privileges, server configuration,
-extensions, performance views, cluster overview with health checks and metric trends,
-replication (standbys, slots, publications/subscriptions).
+- **Users & roles** — roles, memberships (PG 16 `INHERIT`/`SET` aware), attributes, ownership.
+- **Effective privileges** — the real answer from `has_*_privilege()`, explained step by step.
+- **Permissions editors** — database, schema, table/view, sequence, function and default
+  privileges. Every change is planned, shown as SQL, applied on confirmation and audited.
+- **Configuration** — server settings, role/database overrides, `pg_hba.conf`, extensions.
+- **Performance** — activity, `pg_stat_statements`, table and database statistics.
+- **Cluster** — health checks with metric trends, replication (standbys, slots,
+  publications/subscriptions) and Patroni (switchover, failover, restart, reinitialize …).
+- **Operations-ready** — many instances per install, `viewer` / `operator` / `admin`
+  accounts, OpenID Connect SSO, audit log, SQLite or PostgreSQL metadata store, one Docker image.
+
+Supports PostgreSQL **14 through 18**.
 
 ## Screenshots
 
@@ -18,18 +32,34 @@ replication (standbys, slots, publications/subscriptions).
 |---|---|
 | ![Cluster overview](docs/screenshots/overview.png) | ![Patroni](docs/screenshots/patroni.png) |
 
-## Run (Docker)
+## Quick start
 
 ```sh
-cp .env.example .env            # set PGCONTROL_SECRET_KEY (openssl rand -base64 32)
-docker compose up -d --build
-open http://localhost:7420      # user: admin — password from PGCONTROL_ADMIN_PASSWORD or the container log
+docker run -d --name pgcontrol -p 7420:7420 \
+  -e PGCONTROL_SECRET_KEY="$(openssl rand -base64 32)" \
+  -v pgcontrol-data:/data \
+  fatihemre/pgcontrol:latest
+docker logs pgcontrol | grep password   # initial admin password (or set PGCONTROL_ADMIN_PASSWORD)
+open http://localhost:7420
 ```
 
-PgControl keeps its own metadata (users, connection profiles, audit log) in a SQLite
-database under the `/data` volume. Stored PostgreSQL passwords are encrypted with
-AES-256-GCM using a key derived from `PGCONTROL_SECRET_KEY` — losing that key means
-re-entering every password.
+Or with Compose, which also lets you build from source:
+
+```sh
+git clone https://github.com/fatihemre/pg-control.git && cd pg-control
+cp .env.example .env            # set PGCONTROL_SECRET_KEY (openssl rand -base64 32)
+docker compose up -d            # add --build to build the image locally
+```
+
+Then log in as `admin`, open **Connections → Instances**, add a PostgreSQL instance and
+start exploring. Images are published to
+[Docker Hub](https://hub.docker.com/r/fatihemre/pgcontrol) (`fatihemre/pgcontrol`) and
+GHCR (`ghcr.io/fatihemre/pg-control`) for `linux/amd64` and `linux/arm64`.
+
+Keep `PGCONTROL_SECRET_KEY` safe: stored PostgreSQL passwords are encrypted with a key
+derived from it, and the `/data` volume holds PgControl's own metadata (accounts,
+connection profiles, audit log). All settings are listed in
+[docs/configuration.md](docs/configuration.md).
 
 ## Ports
 
@@ -142,20 +172,23 @@ Tests and lint:
 
 ```sh
 uv run pytest
-uv run ruff check src tests alembic
+uv run ruff check src tests alembic && uv run ruff format --check src tests alembic
 cd frontend && npm run lint && npm run build
 ```
 
 `PGCONTROL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:7416/pgcontrol_test uv run pytest`
 runs the same suite with PostgreSQL as the metadata database (the database is created and
-wiped for each run).
+wiped for each run). `tests/test_catalog_integration.py` runs against the dev containers
+when they are up and is skipped otherwise.
 
 Connect PgControl to a dev instance with host `127.0.0.1`, port `7416` (PG 16), user
 `postgres`, password `postgres`. The `reservations` database contains the sample roles
 (`reservation_api`, `reservation_read`, `reservation_write`, …) used throughout development.
-
 The Patroni cluster (`patroni1`, `patroni2`, etcd) exposes PostgreSQL on `7433`/`7434` and
 its REST API on `http://127.0.0.1:7431` / `7432`, REST credentials `patroni` / `patroni`.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the project rules (PG 14–18 compatibility,
+identifier quoting, Plan → Apply for writes) and the pull request checklist.
 
 ## Layout
 
@@ -170,3 +203,14 @@ frontend/           Vite + React + TypeScript UI
 docker/dev-init/    sample data for the dev PostgreSQL instances
 docker/dev-patroni/ image and config for the dev Patroni cluster
 ```
+
+## Contributing and support
+
+- Bugs and feature requests: [GitHub issues](https://github.com/fatihemre/pg-control/issues)
+- Questions and ideas: [GitHub Discussions](https://github.com/fatihemre/pg-control/discussions)
+- Security issues: see [SECURITY.md](SECURITY.md) — please report privately
+- Release notes: [CHANGELOG.md](CHANGELOG.md)
+
+## License
+
+[MIT](LICENSE) © 2026 Fatih Emre

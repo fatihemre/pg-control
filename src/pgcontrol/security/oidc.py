@@ -180,7 +180,7 @@ class OidcClient:
         s = self.settings
         username = claims.get(s.oidc_username_claim) or claims.get("email") or claims["sub"]
         role = self._map_role(claims)
-        if role is None:
+        if not role:  # None, or PGCONTROL_OIDC_DEFAULT_ROLE set to an empty value
             raise OidcError("Your account has no PgControl role; ask an administrator.")
         return Identity(
             subject=claims["sub"], username=str(username)[:64], role=role, claims=claims

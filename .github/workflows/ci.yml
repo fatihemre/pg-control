@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (lint + tests)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["7416:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff check src tests alembic
+      - run: uv run ruff format --check src tests alembic
+      - name: Tests (SQLite metadata DB)
+        run: uv run pytest
+      - name: Tests (PostgreSQL metadata DB)
+        env:
+          PGCONTROL_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:7416/pgcontrol_test
+        run: uv run pytest
+
+  integration:
+    name: Catalog tests on PostgreSQL 14–18
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Start PostgreSQL 14–18
+        run: docker compose -f docker-compose.dev.yml up -d --wait pg14 pg15 pg16 pg17 pg18
+      - run: uv run pytest tests/test_catalog_integration.py -v
+      - if: always()
+        run: docker compose -f docker-compose.dev.yml down -v
+
+  frontend:
+    name: Frontend (lint + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: pgcontrol:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

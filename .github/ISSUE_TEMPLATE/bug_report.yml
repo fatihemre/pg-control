@@ -1,0 +1,45 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Connect an instance …
+        2. Open Permissions → Table …
+        3. …
+  - type: input
+    id: version
+    attributes:
+      label: PgControl version
+      description: Shown at `/api/health` or in the Docker image tag.
+    validations:
+      required: true
+  - type: input
+    id: postgres
+    attributes:
+      label: PostgreSQL version(s) of the managed instance
+      placeholder: "16.4, Patroni 4.1"
+  - type: dropdown
+    id: install
+    attributes:
+      label: How do you run PgControl?
+      options:
+        - Docker image
+        - docker compose (built from source)
+        - From source (uv run pgcontrol serve)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Container / server log lines around the failure. Remove passwords and hostnames you do not want to share.
+      render: shell

@@ -13,4 +13,10 @@ frontend/dist/
 # Runtime data
 data/
 *.db
+*.db-journal
 .env
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

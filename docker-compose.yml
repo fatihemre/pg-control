@@ -1,9 +1,11 @@
 # PgControl — self-hosted PostgreSQL governance panel.
 # UI + API on http://localhost:7420
+#   docker compose up -d          pulls the published image
+#   docker compose up -d --build  builds the image from this checkout instead
 services:
   pgcontrol:
+    image: fatihemre/pgcontrol:latest
     build: .
-    image: pgcontrol:latest
     container_name: pgcontrol
     ports: ["7420:7420"]
     environment:

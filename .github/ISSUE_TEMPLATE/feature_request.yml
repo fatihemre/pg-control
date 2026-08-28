@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest a capability or improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the governance question or workflow you cannot do today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would it look in the UI / API? Which PostgreSQL catalogs or features are involved?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

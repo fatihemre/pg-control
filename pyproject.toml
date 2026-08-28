@@ -1,8 +1,23 @@
 [project]
 name = "pgcontrol"
 version = "0.1.0"
-description = "Self-hosted PostgreSQL governance panel: users, roles, effective privileges, configuration"
+description = "Self-hosted PostgreSQL governance panel: users, roles, effective privileges, configuration, cluster"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Fatih Emre", email = "fatihemreoner@gmail.com" }]
 requires-python = ">=3.13"
+keywords = ["postgresql", "postgres", "privileges", "roles", "grants", "patroni", "admin", "governance"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: FastAPI",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database :: Database Engines/Servers",
+    "Topic :: System :: Systems Administration",
+]
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
@@ -18,6 +33,12 @@ dependencies = [
     "pyjwt[crypto]>=2.9",
     "httpx>=0.27",
 ]
+
+[project.urls]
+Homepage = "https://github.com/fatihemre/pg-control"
+Documentation = "https://github.com/fatihemre/pg-control#readme"
+Changelog = "https://github.com/fatihemre/pg-control/blob/main/CHANGELOG.md"
+Issues = "https://github.com/fatihemre/pg-control/issues"
 
 [project.scripts]
 pgcontrol = "pgcontrol.cli:main"
