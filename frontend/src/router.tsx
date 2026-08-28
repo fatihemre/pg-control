@@ -28,6 +28,8 @@ import { PermissionsPage } from './pages/Permissions'
 import { RoleAttributesPage } from './pages/RoleAttributes'
 import { LoginPage } from './pages/Login'
 import { PlaceholderPage } from './pages/Placeholder'
+import { OverviewPage } from './pages/Overview'
+import { ReplicationPage } from './pages/Replication'
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -135,6 +137,8 @@ const activityRoute = createRoute({ getParentRoute: () => appRoute, path: '/perf
 const statementsRoute = createRoute({ getParentRoute: () => appRoute, path: '/perf/statements', component: StatementsPage })
 const tableStatsRoute = createRoute({ getParentRoute: () => appRoute, path: '/perf/tables', component: TableStatsPage })
 const dbStatsRoute = createRoute({ getParentRoute: () => appRoute, path: '/perf/databases', component: DatabaseStatsPage })
+const overviewRoute = createRoute({ getParentRoute: () => appRoute, path: '/cluster/overview', component: OverviewPage })
+const replicationRoute = createRoute({ getParentRoute: () => appRoute, path: '/cluster/replication', component: ReplicationPage })
 
 const placeholderRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -164,6 +168,8 @@ const routeTree = rootRoute.addChildren([
     statementsRoute,
     tableStatsRoute,
     dbStatsRoute,
+    overviewRoute,
+    replicationRoute,
     placeholderRoute,
   ]),
 ])

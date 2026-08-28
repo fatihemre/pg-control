@@ -499,3 +499,180 @@ export const dbStatsQuery = (profileId: number) =>
     queryFn: () => api.get<DatabaseStats[]>(`/api/profiles/${profileId}/db-stats`),
     staleTime: 10_000,
   })
+
+export type Overview = {
+  version: string
+  version_num: number
+  in_recovery: boolean
+  start_time: string
+  uptime_seconds: number
+  data_checksums: boolean
+  max_connections: number
+  connections: number
+  reserved_connections: number
+  active: number
+  idle_in_transaction: number
+  waiting: number
+  longest_xact_seconds: number | null
+  longest_idle_xact_seconds: number | null
+  xact_commit: number
+  xact_rollback: number
+  blks_hit: number
+  blks_read: number
+  cache_hit_ratio: number | null
+  deadlocks: number
+  temp_bytes: number
+  stats_reset: string | null
+  current_wal_lsn: string | null
+  wal_bytes: number | null
+  checkpoints_timed: number
+  checkpoints_req: number
+  checkpoint_write_time: number
+  checkpoint_sync_time: number
+  buffers_checkpoint: number | null
+  buffers_backend: number | null
+  oldest_xid_age: number
+  oldest_xid_database: string
+  oldest_mxid_age: number
+  autovacuum_freeze_max_age: number
+  wraparound_ratio: number
+  total_db_bytes: number
+  autovacuum_workers: number
+  standby_count: number
+  inactive_slots: number
+  settings: Record<string, string>
+}
+
+export const overviewQuery = (profileId: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'overview'],
+    queryFn: () => api.get<Overview>(`/api/profiles/${profileId}/overview`),
+    staleTime: 10_000,
+  })
+
+export type Standby = {
+  pid: number
+  user: string | null
+  application_name: string | null
+  client_addr: string | null
+  backend_start: string | null
+  state: string | null
+  sync_state: string | null
+  sync_priority: number | null
+  sent_lsn: string | null
+  write_lsn: string | null
+  flush_lsn: string | null
+  replay_lsn: string | null
+  sent_lag_bytes: number | null
+  write_lag_bytes: number | null
+  flush_lag_bytes: number | null
+  replay_lag_bytes: number | null
+  write_lag_seconds: number | null
+  flush_lag_seconds: number | null
+  replay_lag_seconds: number | null
+  reply_time: string | null
+}
+
+export type WalReceiver = {
+  pid: number
+  status: string | null
+  sender_host: string | null
+  sender_port: number | null
+  slot_name: string | null
+  receive_start_lsn: string | null
+  written_lsn: string | null
+  flushed_lsn: string | null
+  received_tli: number | null
+  last_msg_send_time: string | null
+  last_msg_receipt_time: string | null
+  latest_end_lsn: string | null
+  latest_end_time: string | null
+  conninfo: string | null
+}
+
+export type Recovery = {
+  in_recovery: boolean
+  last_receive_lsn: string | null
+  last_replay_lsn: string | null
+  last_replay_timestamp: string | null
+  replay_lag_bytes: number | null
+  replay_delay_seconds: number | null
+  is_paused: boolean | null
+  primary_conninfo: string | null
+  primary_slot_name: string | null
+}
+
+export type Slot = {
+  name: string
+  plugin: string | null
+  slot_type: 'physical' | 'logical'
+  database: string | null
+  temporary: boolean
+  active: boolean
+  active_pid: number | null
+  xmin: string | null
+  catalog_xmin: string | null
+  restart_lsn: string | null
+  confirmed_flush_lsn: string | null
+  retained_bytes: number | null
+  wal_status: string | null
+  safe_wal_size: number | null
+  two_phase: boolean | null
+  conflicting: boolean | null
+  invalidation_reason: string | null
+  failover: boolean | null
+  synced: boolean | null
+  inactive_since: string | null
+}
+
+export type Publication = {
+  name: string
+  owner: string
+  all_tables: boolean
+  insert: boolean
+  update: boolean
+  delete: boolean
+  truncate: boolean
+  via_root: boolean
+  tables: string[]
+}
+
+export type Subscription = {
+  name: string
+  owner: string
+  enabled: boolean
+  conninfo: string | null
+  slot_name: string | null
+  publications: string[]
+  pid: number | null
+  received_lsn: string | null
+  latest_end_lsn: string | null
+  last_msg_receipt_time: string | null
+  latest_end_time: string | null
+  apply_error_count: number | null
+  sync_error_count: number | null
+  tables_not_ready: number
+}
+
+export type Replication = {
+  in_recovery: boolean
+  recovery: Recovery
+  standbys: Standby[]
+  wal_receiver: WalReceiver | null
+  slots: Slot[]
+  publications: Publication[]
+  subscriptions: Subscription[]
+  logical_database: string
+  wal_level: string
+  max_wal_senders: number
+  max_replication_slots: number
+  synchronous_standby_names: string
+  current_lsn: string | null
+}
+
+export const replicationQuery = (profileId: number, db: string) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'replication', db],
+    queryFn: () => api.get<Replication>(`/api/profiles/${profileId}/replication${db ? `?database=${encodeURIComponent(db)}` : ''}`),
+    staleTime: 5_000,
+  })

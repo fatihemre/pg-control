@@ -43,6 +43,7 @@ export type Change =
   | { op: 'vacuum'; schema: string; name: string; analyze?: boolean; full?: boolean }
   | { op: 'analyze'; schema: string; name: string }
   | { op: 'reset_statements' }
+  | { op: 'drop_replication_slot'; name: string }
   | {
       op: 'alter_default'
       action: 'grant' | 'revoke'
@@ -134,6 +135,8 @@ export function describeChange(c: Change): string {
       return `ANALYZE ${c.schema}.${c.name}`
     case 'reset_statements':
       return 'Reset pg_stat_statements'
+    case 'drop_replication_slot':
+      return `Drop replication slot ${c.name}`
     case 'alter_default':
       return `ALTER DEFAULT PRIVILEGES ${c.action.toUpperCase()} ${c.privileges.join(', ')} ON ${c.object_type.toUpperCase()} ${c.action === 'grant' ? 'TO' : 'FROM'} ${c.grantee}`
   }

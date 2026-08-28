@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
-import { Database, Gauge, KeyRound, LogOut, Settings2, ShieldCheck, Users } from 'lucide-react'
+import { Database, Gauge, KeyRound, LogOut, Server, Settings2, ShieldCheck, Users } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { useLogout, useMe } from '../lib/auth'
 import { InstanceProvider } from '../lib/instance'
@@ -16,6 +16,14 @@ const NAV: NavSection[] = [
     label: 'Connections',
     icon: Database,
     items: [{ label: 'Instances', to: '/connections', ready: true }],
+  },
+  {
+    label: 'Cluster',
+    icon: Server,
+    items: [
+      { label: 'Overview', to: '/cluster/overview', ready: true },
+      { label: 'Replication', to: '/cluster/replication', ready: true },
+    ],
   },
   {
     label: 'Configuration',
