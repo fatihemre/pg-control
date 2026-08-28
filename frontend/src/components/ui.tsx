@@ -40,7 +40,9 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
   return (
     <select
       className={cx(
-        'w-full rounded-md border border-ink-300 bg-white px-2.5 py-1.5 text-sm text-ink-900 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-100',
+        'rounded-md border border-ink-300 bg-white px-2.5 py-1.5 text-sm text-ink-900 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-100',
+        // An explicit width class (w-48 …) must win over the default full width.
+        /(^|\s)w-/.test(className ?? '') ? 'shrink-0' : 'w-full',
         className,
       )}
       {...props}

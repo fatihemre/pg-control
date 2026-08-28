@@ -8,6 +8,16 @@ Scope: users & roles, permissions, effective privileges, server configuration,
 extensions, performance views, cluster overview with health checks and metric trends,
 replication (standbys, slots, publications/subscriptions).
 
+## Screenshots
+
+| Effective privileges | Table privileges |
+|---|---|
+| ![Effective privileges](docs/screenshots/effective-privileges.png) | ![Table privileges](docs/screenshots/permissions.png) |
+
+| Cluster overview | Patroni |
+|---|---|
+| ![Cluster overview](docs/screenshots/overview.png) | ![Patroni](docs/screenshots/patroni.png) |
+
 ## Run (Docker)
 
 ```sh
