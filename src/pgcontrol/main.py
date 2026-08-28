@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from psycopg_pool import PoolTimeout
 
 from pgcontrol import __version__
-from pgcontrol.api import auth, catalog, profiles
+from pgcontrol.api import auth, catalog, changes, profiles
 from pgcontrol.bootstrap import ensure_admin_user
 from pgcontrol.config import get_settings
 from pgcontrol.db.migrate import upgrade_to_head
@@ -70,6 +70,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(profiles.router)
     app.include_router(catalog.router)
+    app.include_router(changes.router)
 
     static_dir = get_settings().resolve_static_dir()
     if static_dir is not None:

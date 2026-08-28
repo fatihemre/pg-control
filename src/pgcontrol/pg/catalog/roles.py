@@ -249,3 +249,29 @@ async def get_role_detail(conn: AsyncConnection, name: str) -> RoleDetail | None
         inherited_by=dedupe_closure(await reverse_closure(conn, name, version)),
         extra={"server_version_num": version},
     )
+
+
+@dataclass
+class MembershipRow:
+    role: str
+    member: str
+    grantor: str | None
+    admin_option: bool
+    inherit_option: bool
+    set_option: bool
+
+
+async def list_memberships(conn: AsyncConnection, version: int) -> list[MembershipRow]:
+    """Every direct membership between non-system roles."""
+    query = sql.SQL(
+        """
+        SELECT p.rolname AS role, mr.rolname AS member, g.rolname AS grantor, {opts}
+        FROM pg_auth_members m
+        JOIN pg_roles p ON p.oid = m.roleid
+        JOIN pg_roles mr ON mr.oid = m.member
+        LEFT JOIN pg_roles g ON g.oid = m.grantor
+        ORDER BY p.rolname, mr.rolname
+        """
+    ).format(opts=_membership_options(version))
+    rows = await (await conn.execute(query)).fetchall()
+    return [MembershipRow(**r) for r in rows]

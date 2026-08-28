@@ -148,3 +148,46 @@ async def test_table_privilege_list_by_version(conn):
     r = await privileges.effective_privileges(conn, "reservation_api", schema="sch_reservation")
     names = [p.name for p in find(r, "sch_reservation", "rooms").privileges]
     assert ("MAINTAIN" in names) is (r.server_version_num >= 170000)
+
+
+async def test_list_grants(conn):
+    from pgcontrol.pg.catalog import grants
+
+    inv = next(
+        g for g in await grants.list_grants(conn, "table", "sch_billing") if g.name == "invoices"
+    )
+    assert inv.owner == "reservation_owner"
+    db = next(g for g in await grants.list_grants(conn, "database") if g.name == "reservations")
+    assert ("reservation_read", "CONNECT") in {(g.grantee, g.privilege) for g in db.grants}
+    fn = (await grants.list_grants(conn, "function", "sch_reservation"))[0]
+    assert (fn.name, fn.args) == ("room_count", "")
+    assert "PUBLIC" in {g.grantee for g in fn.grants}
+
+
+async def test_apply_rolls_back_on_failure(conn):
+    from pgcontrol.pg.changes import ChangeSet, apply_plan, build_plan
+
+    version = (await privileges.effective_privileges(conn, "reporting")).server_version_num
+    good = {
+        "op": "grant",
+        "kind": "table",
+        "schema": "sch_reservation",
+        "name": "rooms",
+        "grantee": "reporting",
+        "privileges": ["TRIGGER"],
+    }
+    bad = dict(good, name="missing")
+    plan = await build_plan(conn, ChangeSet(operations=[good, bad]), version)
+    result = await apply_plan(conn, plan)
+    assert not result.ok and result.failed_index == 1 and "missing" in result.error
+    r = await privileges.effective_privileges(conn, "reporting", schema="sch_reservation")
+    assert privs(find(r, "sch_reservation", "rooms"))["TRIGGER"] is False
+
+    plan = await build_plan(conn, ChangeSet(operations=[good]), version)
+    assert (await apply_plan(conn, plan)).ok
+    r = await privileges.effective_privileges(conn, "reporting", schema="sch_reservation")
+    rooms = find(r, "sch_reservation", "rooms")
+    # reporting has no CONNECT, so the grant is present but still blocked
+    assert rooms.privileges[[p.name for p in rooms.privileges].index("TRIGGER")].sources
+    undo = await build_plan(conn, ChangeSet(operations=[dict(good, op="revoke")]), version)
+    assert (await apply_plan(conn, undo)).ok

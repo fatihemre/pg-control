@@ -4,7 +4,8 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 
 from pgcontrol.api.deps import Box, Pools, Profile, profile_params
-from pgcontrol.pg.catalog import privileges, roles
+from pgcontrol.pg.catalog import grants, privileges, roles
+from pgcontrol.pg.catalog.common import server_version_num
 from pgcontrol.security.auth import CurrentUser
 
 router = APIRouter(prefix="/api/profiles/{profile_id}", tags=["catalog"])
@@ -37,6 +38,42 @@ async def list_schemas(
         )
         rows = await cur.fetchall()
     return [r["nspname"] for r in rows]
+
+
+@router.get("/databases/{dbname}/grants")
+async def list_grants(
+    dbname: str,
+    profile: Profile,
+    box: Box,
+    pools: Pools,
+    _: CurrentUser,
+    kind: Annotated[str, Query(pattern="^(database|schema|table|sequence|function)$")],
+    schema: str | None = None,
+):
+    pool = await _pool(profile, box, pools, dbname)
+    async with pool.connection() as conn:
+        return [g.to_dict() for g in await grants.list_grants(conn, kind, schema)]
+
+
+@router.get("/server")
+async def server_info(profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools)
+    async with pool.connection() as conn:
+        cur = await conn.execute(
+            "SELECT current_setting('server_version_num')::int AS server_version_num, "
+            "version() AS version, current_user AS current_user, "
+            "pg_is_in_recovery() AS in_recovery, "
+            "(SELECT rolsuper FROM pg_roles WHERE rolname = current_user) AS is_superuser"
+        )
+        return await cur.fetchone()
+
+
+@router.get("/memberships")
+async def list_memberships(profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools)
+    async with pool.connection() as conn:
+        version = await server_version_num(conn)
+        return [asdict(m) for m in await roles.list_memberships(conn, version)]
 
 
 @router.get("/roles")
