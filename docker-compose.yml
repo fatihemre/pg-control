@@ -9,6 +9,12 @@ services:
     environment:
       PGCONTROL_SECRET_KEY: ${PGCONTROL_SECRET_KEY:?set PGCONTROL_SECRET_KEY in .env (openssl rand -base64 32)}
       PGCONTROL_ADMIN_PASSWORD: ${PGCONTROL_ADMIN_PASSWORD:-}
+      # Optional: keep PgControl's own data in PostgreSQL instead of the SQLite file in /data
+      PGCONTROL_DATABASE_URL: ${PGCONTROL_DATABASE_URL:-}
+      # Behind an HTTPS reverse proxy set these to true / the proxy address
+      PGCONTROL_SECURE_COOKIES: ${PGCONTROL_SECURE_COOKIES:-false}
+      PGCONTROL_PROXY_HEADERS: ${PGCONTROL_PROXY_HEADERS:-false}
+      PGCONTROL_FORWARDED_ALLOW_IPS: ${PGCONTROL_FORWARDED_ALLOW_IPS:-127.0.0.1}
     volumes:
       - pgcontrol-data:/data
     restart: unless-stopped

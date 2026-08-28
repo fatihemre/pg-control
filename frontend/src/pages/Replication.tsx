@@ -3,7 +3,8 @@ import { RefreshCw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { DatabasePicker } from '../components/DatabasePicker'
 import { NoInstance, QueryState } from '../components/QueryState'
-import { Alert, Badge, Button, EmptyRow, Modal, PageHeader, Select, Table, cx } from '../components/ui'
+import { Alert, Badge, Button, EmptyRow, Modal, PageHeader, Select, Table } from '../components/ui'
+import { cx } from '../lib/cx'
 import { replicationQuery, type Replication, type Slot, type Standby } from '../lib/catalog'
 import { useBasket } from '../lib/changes'
 import { fmtBytes, fmtNum, fmtSeconds, fmtTime } from '../lib/format'
@@ -370,8 +371,10 @@ function DropSlot({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           <Alert tone="error">This slot is in use (pid {slot.active_pid}). PostgreSQL refuses to drop an active slot; disconnect the consumer first.</Alert>
         ) : (
           <Alert tone="error">
-            {slot.retained_bytes === null ? 'The slot has never been used, so no WAL is retained.' : `Dropping the slot releases ${fmtBytes(slot.retained_bytes)} of retained WAL.`} A
-            standby or subscriber that still relies on it will need to be re-synchronised.
+            {slot.retained_bytes === null
+              ? 'The slot has never been used, so no WAL is retained.'
+              : `Dropping the slot releases ${fmtBytes(slot.retained_bytes)} of retained WAL.`}{' '}
+            A standby or subscriber that still relies on it will need to be re-synchronised.
           </Alert>
         )}
         <div className="flex justify-end gap-2">

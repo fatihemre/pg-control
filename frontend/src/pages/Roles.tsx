@@ -16,9 +16,7 @@ export function RolesPage() {
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return (query.data ?? []).filter(
-      (r) => (showSystem || !r.is_system) && (!q || r.name.toLowerCase().includes(q) || r.member_of.some((m) => m.includes(q))),
-    )
+    return (query.data ?? []).filter((r) => (showSystem || !r.is_system) && (!q || r.name.toLowerCase().includes(q) || r.member_of.some((m) => m.includes(q))))
   }, [query.data, search, showSystem])
 
   return (
@@ -31,12 +29,7 @@ export function RolesPage() {
               <input type="checkbox" checked={showSystem} onChange={(e) => setShowSystem(e.target.checked)} />
               System roles
             </label>
-            <Input
-              className="w-64"
-              placeholder="Filter roles…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <Input className="w-64" placeholder="Filter roles…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         }
       />
@@ -77,9 +70,7 @@ export function RolesPage() {
                     ))}
                   </td>
                   <td className="px-3 py-2 text-right font-mono text-xs">{r.connlimit === -1 ? '∞' : r.connlimit}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-ink-700">
-                    {r.valid_until ? r.valid_until.slice(0, 19).replace('T', ' ') : '—'}
-                  </td>
+                  <td className="px-3 py-2 font-mono text-xs text-ink-700">{r.valid_until ? r.valid_until.slice(0, 19).replace('T', ' ') : '—'}</td>
                   <td className="px-3 py-2 text-right">
                     <Link
                       to="/security/effective"

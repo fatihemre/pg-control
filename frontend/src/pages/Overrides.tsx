@@ -136,7 +136,11 @@ function OverrideEditor({ row, onClose }: { row?: RoleDbSetting; onClose: () => 
         <Field label="Parameter">
           <Input list="pg-params" value={name} disabled={!!row} onChange={(e) => setName(e.target.value)} className="font-mono" />
           <datalist id="pg-params">
-            {(settings.data ?? []).filter((s) => s.context === 'user' || s.context === 'superuser').map((s) => <option key={s.name} value={s.name} />)}
+            {(settings.data ?? [])
+              .filter((s) => s.context === 'user' || s.context === 'superuser')
+              .map((s) => (
+                <option key={s.name} value={s.name} />
+              ))}
           </datalist>
         </Field>
         <Field label="Value">

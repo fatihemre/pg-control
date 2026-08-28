@@ -125,8 +125,8 @@ export function StatementsPage() {
               {rows.length === 0 && <EmptyRow colSpan={10}>No statements recorded.</EmptyRow>}
             </Table>
             <p className="text-xs text-ink-500">
-              Times are execution time (planning excluded). Counters accumulate since the last reset; "% of total" is relative to all statements in the view, not
-              just those shown.
+              Times are execution time (planning excluded). Counters accumulate since the last reset; "% of total" is relative to all statements in the view,
+              not just those shown.
             </p>
           </div>
         )

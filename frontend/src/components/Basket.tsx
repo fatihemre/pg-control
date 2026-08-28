@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { useMe } from '../lib/auth'
 import { groupByDatabase, useApply, useBasket, usePlan, type ApplyResult, type PlanResult } from '../lib/changes'
 import { useInstance } from '../lib/instance'
-import { Alert, Badge, Button, Modal, cx } from './ui'
+import { Alert, Badge, Button, Modal } from './ui'
+import { cx } from '../lib/cx'
 
 type GroupResult = { database: string | null; plan?: PlanResult; error?: string; apply?: ApplyResult }
 
@@ -81,9 +82,7 @@ export function BasketModal() {
           ) : (
             groups.map((g) => (
               <div key={g.database ?? '__default'}>
-                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
-                  {g.database ? `Database ${g.database}` : 'Cluster-wide'}
-                </div>
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">{g.database ? `Database ${g.database}` : 'Cluster-wide'}</div>
                 <ul className="divide-y divide-ink-100 rounded-md border border-ink-200">
                   {g.items.map((i) => (
                     <li key={i.id} className="flex items-center justify-between gap-3 px-3 py-2 font-mono text-xs">
@@ -112,9 +111,7 @@ export function BasketModal() {
         <div className="space-y-4">
           {results.map((r) => (
             <div key={r.database ?? '__default'}>
-              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
-                {r.database ? `Database ${r.database}` : 'Cluster-wide'}
-              </div>
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">{r.database ? `Database ${r.database}` : 'Cluster-wide'}</div>
               {r.error && <Alert tone="error">{r.error}</Alert>}
               {r.plan && <Statements statements={r.plan.statements} />}
               {r.plan?.warnings.map((w) => (
@@ -135,8 +132,8 @@ export function BasketModal() {
             </Button>
           </div>
           <p className="text-xs text-ink-500">
-            Each database group runs in a single transaction; a failing statement rolls the whole group back. Groups containing ALTER SYSTEM run
-            statement by statement instead.
+            Each database group runs in a single transaction; a failing statement rolls the whole group back. Groups containing ALTER SYSTEM run statement by
+            statement instead.
           </p>
         </div>
       )}
@@ -145,9 +142,7 @@ export function BasketModal() {
         <div className="space-y-4">
           {results.map((r) => (
             <div key={r.database ?? '__default'}>
-              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
-                {r.database ? `Database ${r.database}` : 'Cluster-wide'}
-              </div>
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">{r.database ? `Database ${r.database}` : 'Cluster-wide'}</div>
               {r.error && <Alert tone="error">{r.error}</Alert>}
               {r.apply && (
                 <>

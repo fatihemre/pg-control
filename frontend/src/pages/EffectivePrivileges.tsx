@@ -4,7 +4,8 @@ import { AlertTriangle, Check, ChevronDown, ChevronRight, X } from 'lucide-react
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { NoInstance, QueryState } from '../components/QueryState'
 import { RoleBadges } from '../components/RoleBadges'
-import { Badge, Field, Input, PageHeader, Select, cx } from '../components/ui'
+import { Badge, Field, Input, PageHeader, Select } from '../components/ui'
+import { cx } from '../lib/cx'
 import {
   databasesQuery,
   effectiveQuery,
@@ -145,15 +146,12 @@ function Why({ obj, role }: { obj: ObjectPrivileges; role: string }) {
         )}
         {obj.rls_enabled && (
           <div>
-            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Row level security {obj.rls_forced && '(forced)'}
-            </div>
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">Row level security {obj.rls_forced && '(forced)'}</div>
             {obj.policies.length ? (
               <ul className="space-y-0.5">
                 {obj.policies.map((p) => (
                   <li key={p.name}>
-                    <span className="font-mono">{p.name}</span> — {p.command}{' '}
-                    {p.permissive ? 'permissive' : 'restrictive'}, for{' '}
+                    <span className="font-mono">{p.name}</span> — {p.command} {p.permissive ? 'permissive' : 'restrictive'}, for{' '}
                     <span className="font-mono">{p.roles.join(', ')}</span>
                   </li>
                 ))}
@@ -211,9 +209,7 @@ function PrivTable({
             return (
               <Fragment key={k}>
                 <tr className="cursor-pointer hover:bg-ink-50" onClick={() => setOpen(isOpen ? null : k)}>
-                  <td className="px-2 py-1.5 text-ink-400">
-                    {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </td>
+                  <td className="px-2 py-1.5 text-ink-400">{isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</td>
                   <td className="px-2 py-1.5 font-mono">
                     {showSchema && <span className="text-ink-400">{o.schema}.</span>}
                     {o.name}
@@ -405,8 +401,7 @@ export function EffectivePrivilegesPage() {
     enabled: !!current && !!db && !!role,
   })
 
-  const update = (patch: EffectiveSearch) =>
-    navigate({ to: '/security/effective', search: { db, role, schema, ...patch } as EffectiveSearch, replace: true })
+  const update = (patch: EffectiveSearch) => navigate({ to: '/security/effective', search: { db, role, schema, ...patch } as EffectiveSearch, replace: true })
 
   return (
     <>

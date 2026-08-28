@@ -220,13 +220,16 @@ function DropRole({ role, onClose }: { role: RoleSummary; onClose: () => void })
   return (
     <Modal title={`Drop role · ${role.name}`} onClose={onClose}>
       <div className="space-y-4">
-        <Alert tone="error">
-          DROP ROLE fails while the role still owns objects or holds privileges. Reassign ownership first, or drop what it owns.
-        </Alert>
+        <Alert tone="error">DROP ROLE fails while the role still owns objects or holds privileges. Reassign ownership first, or drop what it owns.</Alert>
         <Field label="Reassign owned objects to" hint="Runs REASSIGN OWNED BY … TO … then DROP OWNED BY … (current database only)">
           <GranteeSelect value={reassign} onChange={setReassign} allowPublic={false} exclude={[role.name]} placeholder="Do not reassign" />
         </Field>
-        <Checkbox label="DROP OWNED BY (drop remaining objects and revoke privileges in the current database)" checked={dropOwned || !!reassign} onChange={setDropOwned} disabled={!!reassign} />
+        <Checkbox
+          label="DROP OWNED BY (drop remaining objects and revoke privileges in the current database)"
+          checked={dropOwned || !!reassign}
+          onChange={setDropOwned}
+          disabled={!!reassign}
+        />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
             Cancel

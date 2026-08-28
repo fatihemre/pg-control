@@ -39,8 +39,8 @@ export function ClientAuthPage() {
         }
       />
       <p className="mb-4 text-sm text-ink-600">
-        Rules as PostgreSQL currently parses the file (<span className="font-mono">pg_hba_file_rules</span>). Rules are matched top-down; the
-        first match wins. The file itself must be edited on the server, then reloaded.
+        Rules as PostgreSQL currently parses the file (<span className="font-mono">pg_hba_file_rules</span>). Rules are matched top-down; the first match wins.
+        The file itself must be edited on the server, then reloaded.
       </p>
       {!current ? (
         <NoInstance />

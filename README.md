@@ -34,6 +34,24 @@ PgControl uses the `74xx` range to avoid clashing with common defaults:
 | 7431–7432 | Development Patroni REST API (`patroni1`, `patroni2`) |
 | 7433–7434 | Development Patroni PostgreSQL 16 nodes (`patroni1`, `patroni2`) |
 
+## Metadata database
+
+PgControl keeps its own data (accounts, connection profiles, audit log, metric history)
+separate from the instances it manages. By default that is a SQLite file in
+`PGCONTROL_DATA_DIR` (`/data` in the container — keep it on a volume). Set
+`PGCONTROL_DATABASE_URL=postgresql://user:password@host:5432/pgcontrol` to use a
+PostgreSQL database instead; the schema is created and migrated automatically at startup.
+
+```sh
+pgcontrol db current                 # show the migration revision
+pgcontrol db upgrade                 # apply pending migrations (also done at startup)
+pgcontrol db backup [FILE] [--keep N]  # online-safe copy of the SQLite file (default: data/backups/)
+pgcontrol db restore FILE            # replace the SQLite file with a backup (stop PgControl first)
+```
+
+In Docker: `docker exec pgcontrol /app/.venv/bin/pgcontrol db backup`. With PostgreSQL as
+the metadata database use `pg_dump` / `pg_restore` as usual.
+
 ## Metrics history
 
 A background task samples every registered instance (connections, transaction and WAL
@@ -59,6 +77,34 @@ and offers switchover (immediate or scheduled), failover, pause/resume, and per-
 reload, restart, and reinitialize. Every operation is confirmed in the UI, sent to the
 node addresses Patroni itself reports, and recorded in the audit log as `patroni` /
 `patroni_failed`. Read-only connections and viewer accounts can only look.
+
+## Security notes
+
+- Passwords are hashed with Argon2id; connection and Patroni passwords are encrypted with
+  `PGCONTROL_SECRET_KEY` (losing the key means re-entering them).
+- Login is rate limited: after `PGCONTROL_LOGIN_MAX_ATTEMPTS` (5) failures for a client IP
+  or a username within `PGCONTROL_LOGIN_WINDOW_SECONDS` (300), further attempts are refused
+  for `PGCONTROL_LOGIN_LOCKOUT_SECONDS` (300) and a `login_locked` audit entry is written.
+  Set the attempts to `0` to disable.
+- Sessions are HttpOnly, SameSite=Lax cookies that expire after `PGCONTROL_SESSION_TTL_HOURS`
+  (12). Cross-site requests are rejected, responses carry `X-Frame-Options`, a strict
+  `Content-Security-Policy` and `Cache-Control: no-store` on the API.
+- Roles: `viewer` reads everything, `operator` may apply changes and run Patroni
+  operations, `admin` also manages PgControl accounts.
+
+## Running behind a reverse proxy (HTTPS)
+
+Terminate TLS in your proxy (Caddy, nginx, Traefik, …) and forward to port 7420, then set
+
+```sh
+PGCONTROL_SECURE_COOKIES=true     # cookies only over HTTPS
+PGCONTROL_PROXY_HEADERS=true      # trust X-Forwarded-For / X-Forwarded-Proto …
+PGCONTROL_FORWARDED_ALLOW_IPS=*   # … from these proxy addresses ("*" = any)
+```
+
+`PROXY_HEADERS` makes login rate limiting see the real client address and lets the OIDC
+callback URL be derived correctly. Without a proxy PgControl serves plain HTTP; do not
+expose it to the internet like that.
 
 ## Single sign-on (OpenID Connect)
 
@@ -87,7 +133,12 @@ Tests and lint:
 ```sh
 uv run pytest
 uv run ruff check src tests alembic
+cd frontend && npm run lint && npm run build
 ```
+
+`PGCONTROL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:7416/pgcontrol_test uv run pytest`
+runs the same suite with PostgreSQL as the metadata database (the database is created and
+wiped for each run).
 
 Connect PgControl to a dev instance with host `127.0.0.1`, port `7416` (PG 16), user
 `postgres`, password `postgres`. The `reservations` database contains the sample roles

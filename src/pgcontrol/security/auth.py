@@ -32,6 +32,12 @@ async def delete_session(db: AsyncSession, token: str) -> None:
     await db.commit()
 
 
+async def purge_expired_sessions(db: AsyncSession) -> int:
+    result = await db.execute(delete(Session).where(Session.expires_at < datetime.now(UTC)))
+    await db.commit()
+    return result.rowcount or 0
+
+
 async def current_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     token: Annotated[str | None, Cookie(alias=SESSION_COOKIE)] = None,

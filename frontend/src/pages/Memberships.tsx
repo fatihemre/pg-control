@@ -112,10 +112,7 @@ function AddMembership({ pg16, onClose }: { pg16: boolean; onClose: () => void }
 
   const submit = () => {
     if (!role || !member || role === member) return
-    basket.add(
-      { op: 'grant_role', role, member, admin_option: admin || undefined, inherit_option: tri(inherit), set_option: tri(set) },
-      null,
-    )
+    basket.add({ op: 'grant_role', role, member, admin_option: admin || undefined, inherit_option: tri(inherit), set_option: tri(set) }, null)
     onClose()
   }
 

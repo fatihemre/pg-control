@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Ban, RefreshCw, XOctagon } from 'lucide-react'
 import { useState } from 'react'
 import { NoInstance, QueryState } from '../components/QueryState'
-import { Badge, Button, Checkbox, EmptyRow, Input, PageHeader, Select, Table, cx } from '../components/ui'
+import { Badge, Button, Checkbox, EmptyRow, Input, PageHeader, Select, Table } from '../components/ui'
+import { cx } from '../lib/cx'
 import { activityQuery, type Session } from '../lib/catalog'
 import { useBasket } from '../lib/changes'
 import { useInstance } from '../lib/instance'
@@ -102,7 +103,10 @@ export function ActivityPage() {
                     <td className="px-3 py-2 text-xs">
                       {b.locktype} · {b.mode}
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs" title={b.relation && /^\d+$/.test(b.relation) ? 'OID in another database; name not resolvable from the profile database' : ''}>
+                    <td
+                      className="px-3 py-2 font-mono text-xs"
+                      title={b.relation && /^\d+$/.test(b.relation) ? 'OID in another database; name not resolvable from the profile database' : ''}
+                    >
                       {b.relation && /^\d+$/.test(b.relation) ? `oid ${b.relation}` : (b.relation ?? '')}
                     </td>
                     <td className="px-3 py-2 text-xs">{fmtSeconds(b.waiting_seconds)}</td>

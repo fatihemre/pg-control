@@ -11,9 +11,7 @@ import { useInstance } from '../lib/instance'
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="rounded-lg border border-ink-200 bg-white">
-      <h2 className="border-b border-ink-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
-        {title}
-      </h2>
+      <h2 className="border-b border-ink-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-500">{title}</h2>
       <div className="px-4 py-3 text-sm">{children}</div>
     </section>
   )
@@ -45,9 +43,15 @@ function MembershipTable({ rows, column }: { rows: Membership[]; column: string 
               </Link>
             </td>
             <td className="py-1 pr-3 font-mono text-xs text-ink-700">{m.grantor ?? '—'}</td>
-            <td className="py-1 pr-3"><Yes v={m.admin_option} /></td>
-            <td className="py-1 pr-3"><Yes v={m.inherit_option} /></td>
-            <td className="py-1 pr-3"><Yes v={m.set_option} /></td>
+            <td className="py-1 pr-3">
+              <Yes v={m.admin_option} />
+            </td>
+            <td className="py-1 pr-3">
+              <Yes v={m.inherit_option} />
+            </td>
+            <td className="py-1 pr-3">
+              <Yes v={m.set_option} />
+            </td>
           </tr>
         ))}
       </tbody>
@@ -128,7 +132,9 @@ export function RoleDetailPage() {
               <dt className="text-ink-500">Valid until</dt>
               <dd className="font-mono">{query.data.role.valid_until ?? 'never expires'}</dd>
               <dt className="text-ink-500">Inherits</dt>
-              <dd><Yes v={query.data.role.inherit} /></dd>
+              <dd>
+                <Yes v={query.data.role.inherit} />
+              </dd>
             </dl>
           </Card>
           <Card title="Role settings (ALTER ROLE … SET)">

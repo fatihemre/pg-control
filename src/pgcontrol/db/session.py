@@ -17,8 +17,13 @@ def get_engine() -> AsyncEngine:
     global _engine, _sessionmaker
     if _engine is None:
         settings = get_settings()
-        settings.data_dir.mkdir(parents=True, exist_ok=True)
-        _engine = create_async_engine(settings.database_url)
+        if settings.uses_sqlite:
+            settings.data_dir.mkdir(parents=True, exist_ok=True)
+            _engine = create_async_engine(settings.sqlalchemy_url)
+        else:
+            _engine = create_async_engine(
+                settings.sqlalchemy_url, pool_pre_ping=True, pool_size=5, max_overflow=5
+            )
         _sessionmaker = async_sessionmaker(_engine, expire_on_commit=False)
     return _engine
 

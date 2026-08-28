@@ -4,7 +4,8 @@ import { RefreshCw } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { NoInstance, QueryState } from '../components/QueryState'
 import { Sparkline, type SparkPoint } from '../components/Sparkline'
-import { Badge, Button, PageHeader, Select, cx } from '../components/ui'
+import { Badge, Button, PageHeader, Select } from '../components/ui'
+import { cx } from '../lib/cx'
 import { metricsQuery, overviewQuery, type MetricPoint, type Overview } from '../lib/catalog'
 import { fmtBytes, fmtNum, fmtPct, fmtSeconds, fmtTime } from '../lib/format'
 import { useInstance } from '../lib/instance'
@@ -76,7 +77,8 @@ function healthChecks(o: Overview): Check[] {
   checks.push({
     label: 'Autovacuum',
     tone: o.settings.autovacuum === 'off' ? 'bad' : 'ok',
-    detail: o.settings.autovacuum === 'off' ? 'disabled — tables will bloat and XID age will grow unchecked' : `on, ${o.autovacuum_workers} worker(s) running now`,
+    detail:
+      o.settings.autovacuum === 'off' ? 'disabled — tables will bloat and XID age will grow unchecked' : `on, ${o.autovacuum_workers} worker(s) running now`,
     to: '/config/settings',
   })
   return checks
@@ -146,7 +148,15 @@ export function OverviewPage() {
                     )}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">{c.to ? <Link to={c.to} className="hover:underline">{c.label}</Link> : c.label}</div>
+                    <div className="text-sm font-medium">
+                      {c.to ? (
+                        <Link to={c.to} className="hover:underline">
+                          {c.label}
+                        </Link>
+                      ) : (
+                        c.label
+                      )}
+                    </div>
                     <div className="text-xs opacity-80">{c.detail}</div>
                   </div>
                 </div>
@@ -179,7 +189,14 @@ export function OverviewPage() {
                   all settings
                 </Link>
               </h2>
-              <KV rows={Object.entries(o.settings).map(([k, v]) => [k, <span key={k} className="font-mono text-xs">{v || <span className="text-ink-400">(empty)</span>}</span>])} />
+              <KV
+                rows={Object.entries(o.settings).map(([k, v]) => [
+                  k,
+                  <span key={k} className="font-mono text-xs">
+                    {v || <span className="text-ink-400">(empty)</span>}
+                  </span>,
+                ])}
+              />
             </section>
           </div>
         </div>

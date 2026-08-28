@@ -165,8 +165,8 @@ export function GrantsPage() {
             {rows.length === 0 && <EmptyRow colSpan={7}>No grants match.</EmptyRow>}
           </Table>
           <p className="text-xs text-ink-500">
-            Default ACL entries (object has no explicit ACL) show the owner's implicit privileges and, for functions and databases, the built-in PUBLIC
-            grants. Use "Explicit ACLs only" to see what was granted by hand.
+            Default ACL entries (object has no explicit ACL) show the owner's implicit privileges and, for functions and databases, the built-in PUBLIC grants.
+            Use "Explicit ACLs only" to see what was granted by hand.
           </p>
         </div>
       ) : (

@@ -30,9 +30,7 @@ function objectLabel(o: ObjectGrants) {
 }
 
 function refFor(kind: ObjectKind, o: ObjectGrants) {
-  return kind === 'database' || kind === 'schema'
-    ? { kind, name: o.name }
-    : { kind, schema: o.schema ?? undefined, name: o.name, args: o.args ?? undefined }
+  return kind === 'database' || kind === 'schema' ? { kind, name: o.name } : { kind, schema: o.schema ?? undefined, name: o.name, args: o.args ?? undefined }
 }
 
 export function PermissionsPage() {
@@ -146,7 +144,13 @@ export function PermissionsPage() {
         />
       )}
       {defaults && DEFAULT_KIND[kind] && (
-        <DefaultPrivilegesEditor objectType={DEFAULT_KIND[kind]} schema={hasSchema ? schema : ''} version={version} database={db} onClose={() => setDefaults(false)} />
+        <DefaultPrivilegesEditor
+          objectType={DEFAULT_KIND[kind]}
+          schema={hasSchema ? schema : ''}
+          version={version}
+          database={db}
+          onClose={() => setDefaults(false)}
+        />
       )}
     </>
   )
@@ -250,9 +254,7 @@ function GrantEditor({
           <GranteeSelect value={grantee} onChange={pickGrantee} />
         </Field>
         {object && grantee && (
-          <p className="text-xs text-ink-500">
-            Currently: {existing.size ? [...existing].join(', ') : 'no privileges'}. Tick to grant, untick to revoke.
-          </p>
+          <p className="text-xs text-ink-500">Currently: {existing.size ? [...existing].join(', ') : 'no privileges'}. Tick to grant, untick to revoke.</p>
         )}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {privileges.map((p) => (

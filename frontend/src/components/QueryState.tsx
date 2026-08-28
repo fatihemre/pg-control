@@ -17,9 +17,5 @@ export function QueryState({ query }: { query: UseQueryResult<unknown> }) {
 }
 
 export function NoInstance() {
-  return (
-    <div className="rounded-md border border-dashed border-ink-300 p-8 text-center text-sm text-ink-500">
-      Select an instance to continue.
-    </div>
-  )
+  return <div className="rounded-md border border-dashed border-ink-300 p-8 text-center text-sm text-ink-500">Select an instance to continue.</div>
 }

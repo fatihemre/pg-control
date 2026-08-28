@@ -3,7 +3,8 @@ import { Wrench } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { DatabasePicker } from '../components/DatabasePicker'
 import { NoInstance, QueryState } from '../components/QueryState'
-import { Badge, Checkbox, EmptyRow, Input, PageHeader, Select, Table, cx } from '../components/ui'
+import { Badge, Checkbox, EmptyRow, Input, PageHeader, Select, Table } from '../components/ui'
+import { cx } from '../lib/cx'
 import { indexStatsQuery, schemasQuery, tableStatsQuery, type IndexStats, type TableStats } from '../lib/catalog'
 import { useBasket } from '../lib/changes'
 import { useDatabase, useInstance } from '../lib/instance'
@@ -149,10 +150,16 @@ function TablesView({ rows, db, search, flaggedOnly }: { rows: TableStats[]; db:
                 {fmtNum(t.seq_scan)} / {fmtNum(t.idx_scan)}
               </td>
               <td className="px-3 py-2 text-right text-xs">{fmtPct(t.cache_hit_ratio)}</td>
-              <td className="whitespace-nowrap px-3 py-2 text-xs text-ink-600" title={`manual: ${fmtTime(t.last_vacuum)} · auto: ${fmtTime(t.last_autovacuum)}`}>
+              <td
+                className="whitespace-nowrap px-3 py-2 text-xs text-ink-600"
+                title={`manual: ${fmtTime(t.last_vacuum)} · auto: ${fmtTime(t.last_autovacuum)}`}
+              >
                 {fmtTime(later(t.last_vacuum, t.last_autovacuum))}
               </td>
-              <td className="whitespace-nowrap px-3 py-2 text-xs text-ink-600" title={`manual: ${fmtTime(t.last_analyze)} · auto: ${fmtTime(t.last_autoanalyze)}`}>
+              <td
+                className="whitespace-nowrap px-3 py-2 text-xs text-ink-600"
+                title={`manual: ${fmtTime(t.last_analyze)} · auto: ${fmtTime(t.last_autoanalyze)}`}
+              >
                 {fmtTime(later(t.last_analyze, t.last_autoanalyze))}
               </td>
               <td className="px-3 py-2 text-right">
@@ -215,7 +222,11 @@ function IndexesView({ rows, search, flaggedOnly }: { rows: IndexStats[]; search
           const key = `${i.schema}.${i.name}`
           return (
             <tr key={key} className="hover:bg-ink-50">
-              <td className="cursor-pointer px-3 py-2 font-mono text-xs" onClick={() => setExpanded(expanded === key ? null : key)} title="Click for definition">
+              <td
+                className="cursor-pointer px-3 py-2 font-mono text-xs"
+                onClick={() => setExpanded(expanded === key ? null : key)}
+                title="Click for definition"
+              >
                 {i.name}
                 {expanded === key && <pre className="mt-1 whitespace-pre-wrap text-[11px] text-ink-600">{i.definition}</pre>}
               </td>

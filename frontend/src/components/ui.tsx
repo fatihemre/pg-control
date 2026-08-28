@@ -1,8 +1,6 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react'
 
-export function cx(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ')
-}
+import { cx } from '../lib/cx'
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost'
 
@@ -13,11 +11,7 @@ const variants: Record<Variant, string> = {
   ghost: 'text-ink-700 hover:bg-ink-100',
 }
 
-export function Button({
-  variant = 'primary',
-  className,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+export function Button({ variant = 'primary', className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
   return (
     <button
       className={cx(
@@ -64,24 +58,14 @@ export function Field({ label, children, hint }: { label: string; children: Reac
   )
 }
 
-export function Badge({
-  tone = 'neutral',
-  children,
-}: {
-  tone?: 'neutral' | 'ok' | 'warn' | 'bad'
-  children: ReactNode
-}) {
+export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'ok' | 'warn' | 'bad'; children: ReactNode }) {
   const tones = {
     neutral: 'bg-ink-100 text-ink-700',
     ok: 'bg-emerald-100 text-emerald-800',
     warn: 'bg-amber-100 text-amber-800',
     bad: 'bg-red-100 text-red-800',
   }
-  return (
-    <span className={cx('inline-flex rounded px-1.5 py-0.5 font-mono text-xs', tones[tone])}>
-      {children}
-    </span>
-  )
+  return <span className={cx('inline-flex rounded px-1.5 py-0.5 font-mono text-xs', tones[tone])}>{children}</span>
 }
 
 export function Alert({ tone, children }: { tone: 'error' | 'ok'; children: ReactNode }) {
@@ -97,17 +81,7 @@ export function Alert({ tone, children }: { tone: 'error' | 'ok'; children: Reac
   )
 }
 
-export function Modal({
-  title,
-  onClose,
-  children,
-  wide,
-}: {
-  title: string
-  onClose: () => void
-  children: ReactNode
-  wide?: boolean
-}) {
+export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-ink-950/40 p-4 sm:py-12" onClick={onClose}>
       <div
@@ -137,17 +111,7 @@ export function PageHeader({ title, actions }: { title: string; actions?: ReactN
   )
 }
 
-export function Checkbox({
-  label,
-  checked,
-  onChange,
-  disabled,
-}: {
-  label: ReactNode
-  checked: boolean
-  onChange: (v: boolean) => void
-  disabled?: boolean
-}) {
+export function Checkbox({ label, checked, onChange, disabled }: { label: ReactNode; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <label className={cx('flex items-center gap-1.5 text-sm', disabled ? 'text-ink-400' : 'text-ink-800')}>
       <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />

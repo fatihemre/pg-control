@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { NoInstance, QueryState } from '../components/QueryState'
-import { Badge, Button, EmptyRow, PageHeader, Table, cx } from '../components/ui'
+import { Badge, Button, EmptyRow, PageHeader, Table } from '../components/ui'
+import { cx } from '../lib/cx'
 import { dbStatsQuery } from '../lib/catalog'
 import { useInstance } from '../lib/instance'
 import { fmtBytes, fmtNum, fmtPct, fmtTime } from '../lib/format'
@@ -59,7 +60,11 @@ export function DatabaseStatsPage() {
                     )}
                   </td>
                   <td className="px-3 py-2 text-right text-xs">
-                    {d.cache_hit_ratio !== null && d.cache_hit_ratio < 0.9 && d.blks_read > 10000 ? <Badge tone="warn">{fmtPct(d.cache_hit_ratio)}</Badge> : fmtPct(d.cache_hit_ratio)}
+                    {d.cache_hit_ratio !== null && d.cache_hit_ratio < 0.9 && d.blks_read > 10000 ? (
+                      <Badge tone="warn">{fmtPct(d.cache_hit_ratio)}</Badge>
+                    ) : (
+                      fmtPct(d.cache_hit_ratio)
+                    )}
                   </td>
                   <td className="px-3 py-2 text-right text-xs">
                     {fmtNum(d.tup_returned)} / {fmtNum(d.tup_fetched)}
@@ -80,8 +85,8 @@ export function DatabaseStatsPage() {
             {stats.data.length === 0 && <EmptyRow colSpan={12}>No databases.</EmptyRow>}
           </Table>
           <p className="text-xs text-ink-500">
-            Cumulative counters from pg_stat_database since the last statistics reset. Temp files indicate sorts or hashes spilling to disk (consider work_mem); deadlocks
-            and a high rollback ratio usually point at application issues.
+            Cumulative counters from pg_stat_database since the last statistics reset. Temp files indicate sorts or hashes spilling to disk (consider work_mem);
+            deadlocks and a high rollback ratio usually point at application issues.
           </p>
         </div>
       ) : (

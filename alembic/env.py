@@ -3,9 +3,13 @@ import asyncio
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from pgcontrol.config import get_settings
 from pgcontrol.db.models import Base
 
 config = context.config
+# The URL always comes from PgControl's settings (PGCONTROL_DATABASE_URL or the SQLite
+# file in PGCONTROL_DATA_DIR) so `alembic` on the command line and the app agree.
+config.set_main_option("sqlalchemy.url", get_settings().sqlalchemy_url)
 
 target_metadata = Base.metadata
 

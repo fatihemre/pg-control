@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Annotated
 from urllib.parse import quote
@@ -10,10 +11,17 @@ from sqlalchemy.exc import IntegrityError
 from pgcontrol.api.deps import DB
 from pgcontrol.api.schemas import LoginRequest, UserOut
 from pgcontrol.config import get_settings
-from pgcontrol.db.models import User
-from pgcontrol.security.auth import SESSION_COOKIE, CurrentUser, create_session, delete_session
+from pgcontrol.db.models import AuditLog, User
+from pgcontrol.security.auth import (
+    SESSION_COOKIE,
+    CurrentUser,
+    create_session,
+    delete_session,
+    purge_expired_sessions,
+)
 from pgcontrol.security.oidc import OidcClient, OidcError
 from pgcontrol.security.passwords import verify_password
+from pgcontrol.security.ratelimit import LoginLimiter
 
 log = logging.getLogger("pgcontrol.auth")
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -34,8 +42,21 @@ def _set_session_cookie(response: Response, token: str) -> None:
     )
 
 
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
 @router.post("/login", response_model=UserOut)
-async def login(body: LoginRequest, db: DB, response: Response):
+async def login(body: LoginRequest, db: DB, request: Request, response: Response):
+    limiter: LoginLimiter | None = getattr(request.app.state, "login_limiter", None)
+    ip = _client_ip(request)
+    keys = (f"ip:{ip}", f"user:{body.username.lower()}")
+    if limiter and (wait := limiter.retry_after(*keys)):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Too many failed login attempts; try again later",
+            headers={"Retry-After": str(wait)},
+        )
     user = (
         await db.execute(select(User).where(User.username == body.username))
     ).scalar_one_or_none()
@@ -44,7 +65,30 @@ async def login(body: LoginRequest, db: DB, response: Response):
         or user.password_hash is None
         or not verify_password(user.password_hash, body.password)
     ):
+        log.warning("Failed login for %r from %s", body.username, ip)
+        if limiter and limiter.record_failure(*keys):
+            log.warning("Login locked for %r / %s after repeated failures", body.username, ip)
+            db.add(
+                AuditLog(
+                    user_id=user.id if user else None,
+                    action="login_locked",
+                    detail=json.dumps(
+                        {
+                            "username": body.username,
+                            "ip": ip,
+                            "descriptions": [
+                                f"Login locked for {limiter.lockout}s after "
+                                f"{limiter.max_attempts} failed attempts from {ip}"
+                            ],
+                        }
+                    ),
+                )
+            )
+            await db.commit()
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid username or password")
+    if limiter:
+        limiter.reset(f"user:{body.username.lower()}")
+    await purge_expired_sessions(db)
     session = await create_session(db, user)
     _set_session_cookie(response, session.token)
     return user

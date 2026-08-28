@@ -5,12 +5,26 @@ import { useMemo, useState } from 'react'
 import { DatabasePicker } from '../components/DatabasePicker'
 import { GranteeSelect } from '../components/GranteeSelect'
 import { NoInstance, QueryState } from '../components/QueryState'
-import { Alert, Badge, Button, EmptyRow, Field, Input, Modal, PageHeader, Select, Table, cx } from '../components/ui'
+import { Alert, Badge, Button, EmptyRow, Field, Input, Modal, PageHeader, Select, Table } from '../components/ui'
+import { cx } from '../lib/cx'
 import { ownershipQuery, rolesQuery, type OwnedObject, type RoleSummary } from '../lib/catalog'
 import { useBasket } from '../lib/changes'
 import { useDatabase, useInstance } from '../lib/instance'
 
-const KIND_ORDER = ['database', 'schema', 'table', 'partitioned table', 'view', 'materialized view', 'foreign table', 'sequence', 'function', 'procedure', 'aggregate', 'window function']
+const KIND_ORDER = [
+  'database',
+  'schema',
+  'table',
+  'partitioned table',
+  'view',
+  'materialized view',
+  'foreign table',
+  'sequence',
+  'function',
+  'procedure',
+  'aggregate',
+  'window function',
+]
 
 function objectLabel(o: OwnedObject) {
   const base = o.schema ? `${o.schema}.${o.name}` : o.name
@@ -64,8 +78,8 @@ export function OwnershipPage() {
         <div className="space-y-5">
           {loginOwners.length > 0 && (
             <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              {loginOwners.map((o) => o.name).join(', ')} {loginOwners.length === 1 ? 'is a login user that owns' : 'are login users that own'} objects. Prefer a
-              NOLOGIN group role as owner so people can come and go without REASSIGN OWNED.
+              {loginOwners.map((o) => o.name).join(', ')} {loginOwners.length === 1 ? 'is a login user that owns' : 'are login users that own'} objects. Prefer
+              a NOLOGIN group role as owner so people can come and go without REASSIGN OWNED.
             </div>
           )}
           <Table
@@ -153,7 +167,10 @@ export function OwnershipPage() {
                 <td className="px-3 py-2 font-mono text-xs">{objectLabel(o)}</td>
                 <td className="px-3 py-2 font-mono text-xs">{o.owner}</td>
                 <td className="px-3 py-2 text-right">
-                  <button className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-ink-500 hover:text-accent-700" onClick={() => setChanging(o)}>
+                  <button
+                    className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-ink-500 hover:text-accent-700"
+                    onClick={() => setChanging(o)}
+                  >
                     <UserCog className="h-3.5 w-3.5" /> Change owner
                   </button>
                 </td>
@@ -182,9 +199,13 @@ function ChangeOwner({ obj, database, roleMap, onClose }: { obj: OwnedObject; da
           <GranteeSelect value={to} onChange={setTo} allowPublic={false} exclude={[obj.owner]} />
         </Field>
         {target && target.canlogin && !target.superuser && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{to} is a login user; consider a NOLOGIN group role instead.</div>
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {to} is a login user; consider a NOLOGIN group role instead.
+          </div>
         )}
-        <p className="text-xs text-ink-500">The connected role must be a member of the new owner (or a superuser). Privileges granted to other roles are kept.</p>
+        <p className="text-xs text-ink-500">
+          The connected role must be a member of the new owner (or a superuser). Privileges granted to other roles are kept.
+        </p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
             Cancel
@@ -214,8 +235,8 @@ function ReassignOwned({ role, database, onClose }: { role: string; database: st
     <Modal title={`Reassign everything owned by ${role}`} onClose={onClose}>
       <div className="space-y-4">
         <Alert tone="error">
-          REASSIGN OWNED moves every object {role} owns in database {database} (plus shared objects such as databases) to the new owner. Other databases are
-          not touched.
+          REASSIGN OWNED moves every object {role} owns in database {database} (plus shared objects such as databases) to the new owner. Other databases are not
+          touched.
         </Alert>
         <Field label="New owner">
           <GranteeSelect value={to} onChange={setTo} allowPublic={false} exclude={[role]} />

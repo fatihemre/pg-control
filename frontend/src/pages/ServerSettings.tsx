@@ -29,10 +29,7 @@ export function ServerSettingsPage() {
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
     return (settings.data ?? []).filter(
-      (s) =>
-        (!category || s.category === category) &&
-        (!nonDefault || !s.is_default) &&
-        (!q || s.name.includes(q) || s.short_desc.toLowerCase().includes(q)),
+      (s) => (!category || s.category === category) && (!nonDefault || !s.is_default) && (!q || s.name.includes(q) || s.short_desc.toLowerCase().includes(q)),
     )
   }, [settings.data, search, category, nonDefault])
 
@@ -69,9 +66,7 @@ export function ServerSettingsPage() {
         <>
           {pendingRestart.length > 0 && (
             <div className="mb-3">
-              <Alert tone="error">
-                Restart required to apply: {pendingRestart.map((s) => s.name).join(', ')}
-              </Alert>
+              <Alert tone="error">Restart required to apply: {pendingRestart.map((s) => s.name).join(', ')}</Alert>
             </div>
           )}
           {fileErrors.length > 0 && (

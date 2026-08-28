@@ -23,8 +23,7 @@ export function useMe() {
 export function useLogin() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { username: string; password: string }) =>
-      api.post<User>('/api/auth/login', body),
+    mutationFn: (body: { username: string; password: string }) => api.post<User>('/api/auth/login', body),
     onSuccess: (user) => qc.setQueryData(meQuery.queryKey, user),
   })
 }

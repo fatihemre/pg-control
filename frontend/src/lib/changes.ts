@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext } from 'react'
 import { api } from './api'
-import { useInstance } from './instance'
 
 export type ObjectKind = 'database' | 'schema' | 'table' | 'sequence' | 'function'
 export type DefaultKind = 'tables' | 'sequences' | 'functions' | 'types' | 'schemas'
@@ -142,7 +141,7 @@ export function describeChange(c: Change): string {
   }
 }
 
-type BasketValue = {
+export type BasketValue = {
   items: PendingChange[]
   add: (change: Change, database: string | null) => void
   remove: (id: string) => void
@@ -152,56 +151,31 @@ type BasketValue = {
   setOpen: (v: boolean) => void
 }
 
-const BasketContext = createContext<BasketValue | null>(null)
+export const BasketContext = createContext<BasketValue | null>(null)
 
-function storageKey(profileId: number | undefined) {
+export function basketStorageKey(profileId: number | undefined) {
   return `pgcontrol.basket.${profileId ?? 'none'}`
 }
 
-export function BasketProvider({ children }: { children: ReactNode }) {
-  const { current } = useInstance()
-  const key = storageKey(current?.id)
-  const [items, setItems] = useState<PendingChange[]>([])
-  const [open, setOpen] = useState(false)
+export function readBasket(key: string): PendingChange[] {
+  try {
+    const raw = sessionStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as PendingChange[]) : []
+  } catch {
+    return []
+  }
+}
 
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(key)
-      setItems(raw ? (JSON.parse(raw) as PendingChange[]) : [])
-    } catch {
-      setItems([])
-    }
-  }, [key])
+export function writeBasket(key: string, items: PendingChange[]) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(items))
+  } catch {
+    /* ignore */
+  }
+}
 
-  const persist = useCallback(
-    (next: PendingChange[]) => {
-      setItems(next)
-      try {
-        sessionStorage.setItem(key, JSON.stringify(next))
-      } catch {
-        /* ignore */
-      }
-    },
-    [key],
-  )
-
-  const value = useMemo<BasketValue>(
-    () => ({
-      items,
-      add: (change, database) =>
-        persist([
-          ...items,
-          { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, database, label: describeChange(change), change },
-        ]),
-      remove: (id) => persist(items.filter((i) => i.id !== id)),
-      removeMany: (ids) => persist(items.filter((i) => !ids.includes(i.id))),
-      clear: () => persist([]),
-      open,
-      setOpen,
-    }),
-    [items, open, persist],
-  )
-  return <BasketContext.Provider value={value}>{children}</BasketContext.Provider>
+export function newPendingChange(change: Change, database: string | null): PendingChange {
+  return { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, database, label: describeChange(change), change }
 }
 
 export function useBasket(): BasketValue {
@@ -219,16 +193,14 @@ export function groupByDatabase(items: PendingChange[]): Array<{ database: strin
 
 export function usePlan(profileId: number) {
   return useMutation({
-    mutationFn: (body: { database: string | null; operations: Change[] }) =>
-      api.post<PlanResult>(`/api/profiles/${profileId}/plan`, body),
+    mutationFn: (body: { database: string | null; operations: Change[] }) => api.post<PlanResult>(`/api/profiles/${profileId}/plan`, body),
   })
 }
 
 export function useApply(profileId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { database: string | null; operations: Change[] }) =>
-      api.post<ApplyResult>(`/api/profiles/${profileId}/apply`, body),
+    mutationFn: (body: { database: string | null; operations: Change[] }) => api.post<ApplyResult>(`/api/profiles/${profileId}/apply`, body),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['profile', profileId] })
       qc.invalidateQueries({ queryKey: ['audit'] })

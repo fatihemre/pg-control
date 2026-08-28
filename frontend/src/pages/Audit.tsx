@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { QueryState } from '../components/QueryState'
-import { Badge, Checkbox, EmptyRow, PageHeader, Table, cx } from '../components/ui'
+import { Badge, Checkbox, EmptyRow, PageHeader, Table } from '../components/ui'
+import { cx } from '../lib/cx'
 import { auditQuery } from '../lib/catalog'
 import { useInstance } from '../lib/instance'
 
@@ -44,7 +45,13 @@ export function AuditPage() {
                   <td className="px-3 py-2">{e.profile ?? '—'}</td>
                   <td className="px-3 py-2 font-mono text-xs">{d.database ?? '—'}</td>
                   <td className="px-3 py-2">
-                    <Badge tone={e.action.endsWith('_failed') ? 'bad' : e.action === 'apply' || e.action === 'patroni' ? 'ok' : 'neutral'}>{e.action}</Badge>
+                    <Badge
+                      tone={
+                        e.action.endsWith('_failed') || e.action === 'login_locked' ? 'bad' : e.action === 'apply' || e.action === 'patroni' ? 'ok' : 'neutral'
+                      }
+                    >
+                      {e.action}
+                    </Badge>
                   </td>
                   <td className="px-3 py-2 text-xs text-ink-700">
                     {d.descriptions?.length ? `${d.descriptions.length} statement(s): ${d.descriptions[0]}${d.descriptions.length > 1 ? ', …' : ''}` : ''}

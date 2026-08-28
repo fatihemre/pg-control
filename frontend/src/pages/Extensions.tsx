@@ -20,9 +20,7 @@ export function ExtensionsPage() {
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return (exts.data ?? []).filter(
-      (e) => (!installedOnly || e.installed_version) && (!q || e.name.includes(q) || (e.comment ?? '').toLowerCase().includes(q)),
-    )
+    return (exts.data ?? []).filter((e) => (!installedOnly || e.installed_version) && (!q || e.name.includes(q) || (e.comment ?? '').toLowerCase().includes(q)))
   }, [exts.data, search, installedOnly])
 
   return (
