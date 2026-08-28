@@ -97,11 +97,21 @@ export function Alert({ tone, children }: { tone: 'error' | 'ok'; children: Reac
   )
 }
 
-export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+export function Modal({
+  title,
+  onClose,
+  children,
+  wide,
+}: {
+  title: string
+  onClose: () => void
+  children: ReactNode
+  wide?: boolean
+}) {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-ink-950/40 p-4 sm:py-12" onClick={onClose}>
       <div
-        className="mx-auto w-full max-w-xl rounded-lg bg-white shadow-xl"
+        className={cx('mx-auto w-full rounded-lg bg-white shadow-xl', wide ? 'max-w-3xl' : 'max-w-xl')}
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
@@ -124,5 +134,45 @@ export function PageHeader({ title, actions }: { title: string; actions?: ReactN
       <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
       {actions}
     </div>
+  )
+}
+
+export function Checkbox({
+  label,
+  checked,
+  onChange,
+  disabled,
+}: {
+  label: ReactNode
+  checked: boolean
+  onChange: (v: boolean) => void
+  disabled?: boolean
+}) {
+  return (
+    <label className={cx('flex items-center gap-1.5 text-sm', disabled ? 'text-ink-400' : 'text-ink-800')}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      {label}
+    </label>
+  )
+}
+
+export function Table({ head, children }: { head: ReactNode; children: ReactNode }) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-ink-200 bg-white">
+      <table className="w-full text-sm">
+        <thead className="bg-ink-50 text-left text-xs uppercase tracking-wide text-ink-500">{head}</thead>
+        <tbody className="divide-y divide-ink-100">{children}</tbody>
+      </table>
+    </div>
+  )
+}
+
+export function EmptyRow({ colSpan, children }: { colSpan: number; children: ReactNode }) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="px-3 py-6 text-center text-ink-500">
+        {children}
+      </td>
+    </tr>
   )
 }

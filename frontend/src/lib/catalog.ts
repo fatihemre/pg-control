@@ -138,3 +138,80 @@ export const schemasQuery = (profileId: number, db: string) =>
       api.get<string[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/schemas`),
     staleTime: 60_000,
   })
+
+export type ServerInfo = {
+  server_version_num: number
+  version: string
+  current_user: string
+  in_recovery: boolean
+  is_superuser: boolean
+}
+
+export const serverQuery = (profileId: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'server'],
+    queryFn: () => api.get<ServerInfo>(`/api/profiles/${profileId}/server`),
+    staleTime: 5 * 60_000,
+  })
+
+export type MembershipRow = {
+  role: string
+  member: string
+  grantor: string | null
+  admin_option: boolean
+  inherit_option: boolean
+  set_option: boolean
+}
+
+export const membershipsQuery = (profileId: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'memberships'],
+    queryFn: () => api.get<MembershipRow[]>(`/api/profiles/${profileId}/memberships`),
+    staleTime: 30_000,
+  })
+
+export type Grant = { grantee: string; privilege: string; grantable: boolean; grantor: string }
+export type ObjectGrants = {
+  kind: string
+  schema: string | null
+  name: string
+  args: string | null
+  owner: string
+  acl_is_default: boolean
+  grants: Grant[]
+}
+
+export const grantsQuery = (profileId: number, db: string, kind: string, schema?: string) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'grants', db, kind, schema ?? ''],
+    queryFn: () => {
+      const params = new URLSearchParams({ kind })
+      if (schema) params.set('schema', schema)
+      return api.get<ObjectGrants[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/grants?${params}`)
+    },
+    staleTime: 15_000,
+  })
+
+export type AuditEntry = {
+  id: number
+  created_at: string
+  user: string | null
+  profile_id: number | null
+  profile: string | null
+  action: string
+  detail: {
+    database?: string
+    statements?: string[]
+    descriptions?: string[]
+    executed?: number
+    error?: string | null
+    failed_index?: number | null
+  } | null
+}
+
+export const auditQuery = (profileId?: number) =>
+  queryOptions({
+    queryKey: ['audit', profileId ?? 'all'],
+    queryFn: () => api.get<AuditEntry[]>(`/api/audit?limit=200${profileId ? `&profile_id=${profileId}` : ''}`),
+    staleTime: 10_000,
+  })

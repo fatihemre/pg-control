@@ -3,7 +3,9 @@ import { Database, KeyRound, LogOut, Settings2, ShieldCheck, Users } from 'lucid
 import type { ComponentType } from 'react'
 import { useLogout, useMe } from '../lib/auth'
 import { InstanceProvider } from '../lib/instance'
+import { BasketButton, BasketModal } from './Basket'
 import { InstancePicker } from './InstancePicker'
+import { BasketProvider } from '../lib/changes'
 import { cx } from './ui'
 
 type NavItem = { label: string; to: string; ready?: boolean }
@@ -29,19 +31,19 @@ const NAV: NavSection[] = [
     icon: Users,
     items: [
       { label: 'Roles', to: '/roles', ready: true },
-      { label: 'Memberships', to: '/roles/memberships' },
-      { label: 'Attributes', to: '/roles/attributes' },
+      { label: 'Memberships', to: '/roles/memberships', ready: true },
+      { label: 'Attributes', to: '/roles/attributes', ready: true },
     ],
   },
   {
     label: 'Permissions',
     icon: KeyRound,
     items: [
-      { label: 'Database', to: '/permissions/database' },
-      { label: 'Schema', to: '/permissions/schema' },
-      { label: 'Table', to: '/permissions/table' },
-      { label: 'Sequence', to: '/permissions/sequence' },
-      { label: 'Function', to: '/permissions/function' },
+      { label: 'Database', to: '/permissions/database', ready: true },
+      { label: 'Schema', to: '/permissions/schema', ready: true },
+      { label: 'Table', to: '/permissions/table', ready: true },
+      { label: 'Sequence', to: '/permissions/sequence', ready: true },
+      { label: 'Function', to: '/permissions/function', ready: true },
     ],
   },
   {
@@ -51,6 +53,7 @@ const NAV: NavSection[] = [
       { label: 'Effective privileges', to: '/security/effective', ready: true },
       { label: 'Ownership', to: '/security/ownership' },
       { label: 'Grants', to: '/security/grants' },
+      { label: 'Audit log', to: '/security/audit', ready: true },
     ],
   },
 ]
@@ -108,14 +111,18 @@ export function Layout() {
         </div>
       </aside>
       <InstanceProvider>
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <header className="flex h-12 shrink-0 items-center border-b border-ink-200 bg-white px-8">
-            <InstancePicker />
-          </header>
-          <main className="flex-1 overflow-y-auto px-8 py-6">
-            <Outlet />
-          </main>
-        </div>
+        <BasketProvider>
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <header className="flex h-12 shrink-0 items-center border-b border-ink-200 bg-white px-8">
+              <InstancePicker />
+            </header>
+            <main className="flex-1 overflow-y-auto px-8 py-6">
+              <Outlet />
+            </main>
+          </div>
+          <BasketButton />
+          <BasketModal />
+        </BasketProvider>
       </InstanceProvider>
     </div>
   )

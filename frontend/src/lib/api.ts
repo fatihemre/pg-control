@@ -1,8 +1,16 @@
 export class ApiError extends Error {
   status: number
-  constructor(status: number, detail: string) {
-    super(detail)
+  detail: unknown
+  constructor(status: number, detail: unknown) {
+    super(
+      typeof detail === 'string'
+        ? detail
+        : detail && typeof detail === 'object' && 'message' in detail
+          ? String((detail as { message: unknown }).message)
+          : JSON.stringify(detail),
+    )
     this.status = status
+    this.detail = detail
   }
 }
 
@@ -14,10 +22,10 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {
-    let detail = res.statusText
+    let detail: unknown = res.statusText
     try {
       const data = await res.json()
-      detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)
+      detail = data.detail
     } catch {
       /* non-JSON error body */
     }

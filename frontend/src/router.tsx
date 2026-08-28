@@ -12,6 +12,10 @@ import { ConnectionsPage } from './pages/Connections'
 import { EffectivePrivilegesPage, type EffectiveSearch } from './pages/EffectivePrivileges'
 import { RoleDetailPage } from './pages/RoleDetail'
 import { RolesPage } from './pages/Roles'
+import { AuditPage } from './pages/Audit'
+import { MembershipsPage } from './pages/Memberships'
+import { PermissionsPage } from './pages/Permissions'
+import { RoleAttributesPage } from './pages/RoleAttributes'
 import { LoginPage } from './pages/Login'
 import { PlaceholderPage } from './pages/Placeholder'
 
@@ -81,9 +85,34 @@ const effectiveRoute = createRoute({
   component: EffectivePrivilegesPage,
 })
 
-const staticPlaceholders = ['/roles/memberships', '/roles/attributes'].map((path) =>
-  createRoute({ getParentRoute: () => appRoute, path, component: PlaceholderPage }),
-)
+const membershipsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/roles/memberships',
+  component: MembershipsPage,
+})
+
+const attributesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/roles/attributes',
+  component: RoleAttributesPage,
+})
+
+const permissionsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/permissions/$kind',
+  beforeLoad: ({ params }) => {
+    if (!['database', 'schema', 'table', 'sequence', 'function'].includes(params.kind)) {
+      throw redirect({ to: '/permissions/$kind', params: { kind: 'table' } })
+    }
+  },
+  component: PermissionsPage,
+})
+
+const auditRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/security/audit',
+  component: AuditPage,
+})
 
 const placeholderRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -99,7 +128,10 @@ const routeTree = rootRoute.addChildren([
     rolesRoute,
     roleDetailRoute,
     effectiveRoute,
-    ...staticPlaceholders,
+    membershipsRoute,
+    attributesRoute,
+    permissionsRoute,
+    auditRoute,
     placeholderRoute,
   ]),
 ])
