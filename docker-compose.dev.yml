@@ -1,8 +1,9 @@
 # Development-only PostgreSQL instances (PG 14–18) on ports 7414–7418.
 # Usage: docker compose -f docker-compose.dev.yml up -d
 # Superuser: postgres / postgres. Seeded with the "reservations" sample (docker/dev-init).
+# pg16-replica (7419) is a streaming standby of pg16 for the Replication page.
 x-pg: &pg
-  command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+  command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "wal_level=logical"]
   environment:
     POSTGRES_PASSWORD: postgres
   volumes:
@@ -39,3 +40,21 @@ services:
     image: postgres:18-alpine
     container_name: pgcontrol-dev-pg18
     ports: ["7418:5432"]
+  pg16-replica:
+    image: postgres:16-alpine
+    container_name: pgcontrol-dev-pg16-replica
+    depends_on:
+      pg16:
+        condition: service_healthy
+    entrypoint: ["/entrypoint.sh"]
+    environment:
+      POSTGRES_PASSWORD: postgres
+      PRIMARY_HOST: pg16
+    volumes:
+      - ./docker/dev-replica/entrypoint.sh:/entrypoint.sh:ro
+    ports: ["7419:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

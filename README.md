@@ -4,8 +4,9 @@ Self-hosted governance panel for PostgreSQL. Not a query tool — PgControl answ
 questions like *"why can't `reservation_api` insert into `sch_reservation.reservations`?"*
 by showing the full chain: role membership → inherited privileges → schema → object → **final access**.
 
-Planned scope: users & roles, permissions, effective privileges, server configuration,
-extensions, performance views; later cluster/replication management.
+Scope: users & roles, permissions, effective privileges, server configuration,
+extensions, performance views, cluster overview and replication (standbys, slots,
+publications/subscriptions).
 
 ## Run (Docker)
 
@@ -29,11 +30,12 @@ PgControl uses the `74xx` range to avoid clashing with common defaults:
 | 7420 | PgControl UI + API |
 | 7421 | Vite dev server (development only) |
 | 7414–7418 | Development PostgreSQL 14–18 (`docker-compose.dev.yml`) |
+| 7419 | Development streaming replica of PG 16 (`pg16-replica`) |
 
 ## Development
 
 ```sh
-docker compose -f docker-compose.dev.yml up -d   # PostgreSQL 14–18, user postgres/postgres, seeded sample data
+docker compose -f docker-compose.dev.yml up -d   # PostgreSQL 14–18 + pg16 replica, user postgres/postgres, seeded sample data
 uv sync
 cp .env.example .env && $EDITOR .env
 uv run pgcontrol serve --reload                  # API on :7420
