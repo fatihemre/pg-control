@@ -260,6 +260,11 @@ class ResetStatementsOp(_Model):
     op: Literal["reset_statements"]
 
 
+class DropReplicationSlotOp(_Model):
+    op: Literal["drop_replication_slot"]
+    name: str
+
+
 class AlterDefaultOp(_Model):
     op: Literal["alter_default"]
     action: Literal["grant", "revoke"]
@@ -295,7 +300,8 @@ Change = Annotated[
     | TerminateBackendOp
     | VacuumOp
     | AnalyzeOp
-    | ResetStatementsOp,
+    | ResetStatementsOp
+    | DropReplicationSlotOp,
     Field(discriminator="op"),
 ]
 
@@ -495,6 +501,17 @@ class _Renderer:
                     self.stmt(
                         sql.SQL("SELECT pg_stat_statements_reset()"),
                         "Reset pg_stat_statements counters",
+                    )
+                ]
+            case DropReplicationSlotOp():
+                self.warnings.append(
+                    f"Dropping slot {op.name!r} releases the WAL it retains; a consumer that "
+                    "still needs it will have to be re-synchronised."
+                )
+                return [
+                    self.stmt(
+                        sql.SQL("SELECT pg_drop_replication_slot({})").format(sql.Literal(op.name)),
+                        f"Drop replication slot {op.name}",
                     )
                 ]
         raise ValueError(f"unsupported operation {op!r}")  # pragma: no cover

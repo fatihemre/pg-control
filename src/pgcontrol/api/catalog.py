@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 
 from pgcontrol.api.deps import Box, Pools, Profile, profile_params
-from pgcontrol.pg.catalog import config, grants, ownership, perf, privileges, roles
+from pgcontrol.pg.catalog import cluster, config, grants, ownership, perf, privileges, roles
 from pgcontrol.pg.catalog.common import server_version_num
 from pgcontrol.security.auth import CurrentUser
 
@@ -232,3 +232,26 @@ async def list_db_stats(profile: Profile, box: Box, pools: Pools, _: CurrentUser
     pool = await _pool(profile, box, pools)
     async with pool.connection() as conn:
         return [asdict(d) for d in await perf.database_stats(conn)]
+
+
+@router.get("/overview")
+async def get_overview(profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools)
+    async with pool.connection() as conn:
+        version = await server_version_num(conn)
+        return asdict(await cluster.overview(conn, version))
+
+
+@router.get("/replication")
+async def get_replication(
+    profile: Profile, box: Box, pools: Pools, _: CurrentUser, database: str | None = None
+):
+    """Cluster replication state; publications/subscriptions are read from ``database``."""
+    pool = await _pool(profile, box, pools)
+    async with pool.connection() as conn:
+        version = await server_version_num(conn)
+        if database and database != profile.database:
+            logical_pool = await _pool(profile, box, pools, database)
+            async with logical_pool.connection() as logical_conn:
+                return (await cluster.replication(conn, version, logical_conn)).to_dict()
+        return (await cluster.replication(conn, version)).to_dict()

@@ -200,6 +200,7 @@ async def test_ownership_and_maintenance_statements():
         {"op": "analyze", "schema": "s", "name": "t"},
         {"op": "vacuum", "schema": "s", "name": "t", "analyze": True},
         {"op": "reset_statements"},
+        {"op": "drop_replication_slot", "name": "old_slot"},
     )
     assert sqls(p) == [
         'ALTER TABLE "s"."t" OWNER TO "o"',
@@ -211,6 +212,7 @@ async def test_ownership_and_maintenance_statements():
         'ANALYZE "s"."t"',
         'VACUUM (ANALYZE) "s"."t"',
         "SELECT pg_stat_statements_reset()",
+        "SELECT pg_drop_replication_slot('old_slot')",
     ]
     assert not p.atomic
     assert any("VACUUM cannot run inside a transaction" in w for w in p.warnings)

@@ -285,6 +285,24 @@ async def test_perf_catalog(conn):
         assert stmts.reason
 
 
+async def test_cluster_catalog(conn):
+    from pgcontrol.pg.catalog import cluster
+
+    version = await server_version_num(conn)
+    o = await cluster.overview(conn, version)
+    assert o.version_num == version and o.max_connections > 0 and o.connections >= 1
+    assert 0 <= o.wraparound_ratio < 1 and o.uptime_seconds > 0
+    assert o.checkpoints_timed >= 0 and o.settings["wal_level"] == "logical"
+
+    r = await cluster.replication(conn, version)
+    assert not r.in_recovery and r.current_lsn
+    slot = next(s for s in r.slots if s.name == "dev_standby")
+    assert slot.slot_type == "physical"
+    pub = next(p for p in r.publications if p.name == "dev_pub")
+    assert pub.tables == ["sch_reservation.reservations", "sch_reservation.rooms"]
+    assert pub.insert and not pub.all_tables
+
+
 async def test_alter_owner_and_maintenance_apply(conn):
     from pgcontrol.pg.catalog import ownership
     from pgcontrol.pg.changes import ChangeSet, apply_plan, build_plan
