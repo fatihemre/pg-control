@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from psycopg_pool import PoolTimeout
 
 from pgcontrol import __version__
-from pgcontrol.api import auth, catalog, changes, metrics, profiles, users
+from pgcontrol.api import auth, catalog, changes, metrics, patroni, profiles, users
 from pgcontrol.bootstrap import ensure_admin_user
 from pgcontrol.config import get_settings
 from pgcontrol.db.migrate import upgrade_to_head
@@ -35,6 +35,7 @@ async def lifespan(app: FastAPI):
     app.state.sampler = MetricsSampler(app.state.secret_box)
     app.state.sampler.start()
     app.state.oidc = OidcClient(settings) if settings.oidc_enabled else None
+    app.state.patroni_transport = None  # tests inject an httpx.MockTransport
     log.info("PgControl %s listening on http://%s:%s", __version__, settings.host, settings.port)
     yield
     await app.state.sampler.stop()
@@ -79,6 +80,7 @@ def create_app() -> FastAPI:
     app.include_router(changes.router)
     app.include_router(metrics.router)
     app.include_router(users.router)
+    app.include_router(patroni.router)
 
     static_dir = get_settings().resolve_static_dir()
     if static_dir is not None:

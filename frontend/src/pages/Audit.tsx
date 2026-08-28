@@ -44,7 +44,7 @@ export function AuditPage() {
                   <td className="px-3 py-2">{e.profile ?? '—'}</td>
                   <td className="px-3 py-2 font-mono text-xs">{d.database ?? '—'}</td>
                   <td className="px-3 py-2">
-                    <Badge tone={e.action === 'apply' ? 'ok' : e.action === 'apply_failed' ? 'bad' : 'neutral'}>{e.action}</Badge>
+                    <Badge tone={e.action.endsWith('_failed') ? 'bad' : e.action === 'apply' || e.action === 'patroni' ? 'ok' : 'neutral'}>{e.action}</Badge>
                   </td>
                   <td className="px-3 py-2 text-xs text-ink-700">
                     {d.descriptions?.length ? `${d.descriptions.length} statement(s): ${d.descriptions[0]}${d.descriptions.length > 1 ? ', …' : ''}` : ''}
@@ -57,7 +57,13 @@ export function AuditPage() {
                     <td colSpan={6} className="px-3 py-3">
                       <ol className="space-y-1">
                         {(d.statements ?? []).map((s, i) => (
-                          <li key={i} className={cx('rounded border px-2 py-1 font-mono text-xs', d.failed_index === i ? 'border-red-300 bg-red-50' : 'border-ink-200 bg-white')}>
+                          <li
+                            key={i}
+                            className={cx(
+                              'rounded border px-2 py-1 font-mono text-xs',
+                              d.failed_index === i ? 'border-red-300 bg-red-50' : 'border-ink-200 bg-white',
+                            )}
+                          >
                             {s};
                           </li>
                         ))}

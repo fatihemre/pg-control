@@ -2,6 +2,24 @@
 # Usage: docker compose -f docker-compose.dev.yml up -d
 # Superuser: postgres / postgres. Seeded with the "reservations" sample (docker/dev-init).
 # pg16-replica (7419) is a streaming standby of pg16 for the Replication page.
+# patroni1/patroni2 (REST 7431/7432, PostgreSQL 7433/7434) form a Patroni cluster on etcd
+# for the Cluster → Patroni page; REST auth patroni/patroni.
+x-patroni: &patroni
+  build:
+    context: ./docker/dev-patroni
+    additional_contexts:
+      seed: ./docker/dev-init
+  depends_on:
+    etcd:
+      condition: service_started
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U postgres"]
+    interval: 5s
+    timeout: 3s
+    retries: 30
+
 x-pg: &pg
   command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "wal_level=logical"]
   environment:
@@ -58,3 +76,32 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.21
+    container_name: pgcontrol-dev-etcd
+    command:
+      - etcd
+      - --name=etcd
+      - --data-dir=/etcd-data
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-peer-urls=http://0.0.0.0:2380
+      - --initial-advertise-peer-urls=http://etcd:2380
+      - --initial-cluster=etcd=http://etcd:2380
+      - --initial-cluster-state=new
+  patroni1:
+    <<: *patroni
+    container_name: pgcontrol-dev-patroni1
+    environment:
+      PATRONI_NAME: patroni1
+      PATRONI_RESTAPI_CONNECT_ADDRESS: host.docker.internal:7431
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni1:5432
+    ports: ["7431:8008", "7433:5432"]
+  patroni2:
+    <<: *patroni
+    container_name: pgcontrol-dev-patroni2
+    environment:
+      PATRONI_NAME: patroni2
+      PATRONI_RESTAPI_CONNECT_ADDRESS: host.docker.internal:7432
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni2:5432
+    ports: ["7432:8008", "7434:5432"]

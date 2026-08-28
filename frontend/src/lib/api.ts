@@ -57,11 +57,15 @@ export type ProfileInput = {
   sslrootcert?: string | null
   connect_timeout: number
   read_only: boolean
+  patroni_url?: string | null
+  patroni_username?: string | null
+  patroni_password?: string | null
 }
 
-export type Profile = Omit<ProfileInput, 'password'> & {
+export type Profile = Omit<ProfileInput, 'password' | 'patroni_password'> & {
   id: number
   has_password: boolean
+  has_patroni_password: boolean
   created_at: string
   updated_at: string
 }

@@ -1,11 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
-import {
-  Outlet,
-  createRootRouteWithContext,
-  createRoute,
-  createRouter,
-  redirect,
-} from '@tanstack/react-router'
+import { Outlet, createRootRouteWithContext, createRoute, createRouter, redirect } from '@tanstack/react-router'
 import { Layout } from './components/Layout'
 import { meQuery } from './lib/auth'
 import { ConnectionsPage } from './pages/Connections'
@@ -31,6 +25,7 @@ import { PlaceholderPage } from './pages/Placeholder'
 import { OverviewPage } from './pages/Overview'
 import { ReplicationPage } from './pages/Replication'
 import { UsersPage } from './pages/Users'
+import { PatroniPage } from './pages/Patroni'
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -142,6 +137,7 @@ const dbStatsRoute = createRoute({ getParentRoute: () => appRoute, path: '/perf/
 const overviewRoute = createRoute({ getParentRoute: () => appRoute, path: '/cluster/overview', component: OverviewPage })
 const replicationRoute = createRoute({ getParentRoute: () => appRoute, path: '/cluster/replication', component: ReplicationPage })
 const usersRoute = createRoute({ getParentRoute: () => appRoute, path: '/admin/users', component: UsersPage })
+const patroniRoute = createRoute({ getParentRoute: () => appRoute, path: '/cluster/patroni', component: PatroniPage })
 
 const placeholderRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -173,6 +169,7 @@ const routeTree = rootRoute.addChildren([
     dbStatsRoute,
     overviewRoute,
     replicationRoute,
+    patroniRoute,
     usersRoute,
     placeholderRoute,
   ]),

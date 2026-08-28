@@ -24,6 +24,7 @@ const NAV: NavSection[] = [
     items: [
       { label: 'Overview', to: '/cluster/overview', ready: true },
       { label: 'Replication', to: '/cluster/replication', ready: true },
+      { label: 'Patroni', to: '/cluster/patroni', ready: true },
     ],
   },
   {

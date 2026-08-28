@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 SslMode = Literal["disable", "allow", "prefer", "require", "verify-ca", "verify-full"]
 
@@ -30,15 +30,29 @@ class ProfileBase(BaseModel):
     sslrootcert: str | None = None
     connect_timeout: int = Field(default=10, ge=1, le=120)
     read_only: bool = False
+    patroni_url: str | None = Field(default=None, max_length=512)
+    patroni_username: str | None = Field(default=None, max_length=128)
+
+    @field_validator("patroni_url")
+    @classmethod
+    def _patroni_url(cls, v: str | None) -> str | None:
+        v = (v or "").strip().rstrip("/")
+        if not v:
+            return None  # blank clears the Patroni integration
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("Patroni URL must start with http:// or https://")
+        return v
 
 
 class ProfileCreate(ProfileBase):
     password: str | None = None
+    patroni_password: str | None = None
 
 
 class ProfileUpdate(ProfileBase):
     # None = keep existing password, "" = clear it, otherwise replace
     password: str | None = None
+    patroni_password: str | None = None
 
 
 class ProfileOut(ProfileBase):
@@ -46,6 +60,7 @@ class ProfileOut(ProfileBase):
 
     id: int
     has_password: bool
+    has_patroni_password: bool
     created_at: datetime
     updated_at: datetime
 

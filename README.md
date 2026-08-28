@@ -31,6 +31,8 @@ PgControl uses the `74xx` range to avoid clashing with common defaults:
 | 7421 | Vite dev server (development only) |
 | 7414–7418 | Development PostgreSQL 14–18 (`docker-compose.dev.yml`) |
 | 7419 | Development streaming replica of PG 16 (`pg16-replica`) |
+| 7431–7432 | Development Patroni REST API (`patroni1`, `patroni2`) |
+| 7433–7434 | Development Patroni PostgreSQL 16 nodes (`patroni1`, `patroni2`) |
 
 ## Metrics history
 
@@ -47,6 +49,17 @@ demoted or removed. Every user can change their own password from the sidebar. S
 sign-on accounts have no local password and keep the role mapped from the identity
 provider.
 
+## Patroni
+
+Tick "Managed by Patroni" on a connection and enter the REST API URL of any node
+(e.g. `http://patroni1:8008`) plus the `restapi.authentication` credentials if the
+cluster requires them. Cluster → Patroni then shows the members (role, state, timeline,
+replication lag, tags, pending restarts), the timeline history and the DCS configuration,
+and offers switchover (immediate or scheduled), failover, pause/resume, and per-member
+reload, restart, and reinitialize. Every operation is confirmed in the UI, sent to the
+node addresses Patroni itself reports, and recorded in the audit log as `patroni` /
+`patroni_failed`. Read-only connections and viewer accounts can only look.
+
 ## Single sign-on (OpenID Connect)
 
 Set `PGCONTROL_OIDC_ISSUER` and `PGCONTROL_OIDC_CLIENT_ID` (plus `_CLIENT_SECRET` for
@@ -62,7 +75,7 @@ accounts keep working alongside SSO.
 ## Development
 
 ```sh
-docker compose -f docker-compose.dev.yml up -d   # PostgreSQL 14–18 + pg16 replica, user postgres/postgres, seeded sample data
+docker compose -f docker-compose.dev.yml up -d   # PostgreSQL 14–18 + pg16 replica + 2-node Patroni cluster, user postgres/postgres, seeded sample data
 uv sync
 cp .env.example .env && $EDITOR .env
 uv run pgcontrol serve --reload                  # API on :7420
@@ -80,6 +93,9 @@ Connect PgControl to a dev instance with host `127.0.0.1`, port `7416` (PG 16), 
 `postgres`, password `postgres`. The `reservations` database contains the sample roles
 (`reservation_api`, `reservation_read`, `reservation_write`, …) used throughout development.
 
+The Patroni cluster (`patroni1`, `patroni2`, etcd) exposes PostgreSQL on `7433`/`7434` and
+its REST API on `http://127.0.0.1:7431` / `7432`, REST credentials `patroni` / `patroni`.
+
 ## Layout
 
 ```
@@ -91,4 +107,5 @@ src/pgcontrol/      FastAPI application
 alembic/            metadata DB migrations
 frontend/           Vite + React + TypeScript UI
 docker/dev-init/    sample data for the dev PostgreSQL instances
+docker/dev-patroni/ image and config for the dev Patroni cluster
 ```

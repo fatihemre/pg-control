@@ -57,6 +57,10 @@ class ConnectionProfile(Base):
     sslrootcert: Mapped[str | None] = mapped_column(String(512), nullable=True)
     connect_timeout: Mapped[int] = mapped_column(Integer, default=10)
     read_only: Mapped[bool] = mapped_column(default=False)
+    # Optional Patroni REST API of the cluster this instance belongs to.
+    patroni_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    patroni_username: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    patroni_password_enc: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow

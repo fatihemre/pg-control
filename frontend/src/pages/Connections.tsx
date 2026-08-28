@@ -18,6 +18,9 @@ const EMPTY: ProfileInput = {
   sslrootcert: '',
   connect_timeout: 10,
   read_only: false,
+  patroni_url: '',
+  patroni_username: '',
+  patroni_password: '',
 }
 
 export function ConnectionsPage() {
@@ -68,6 +71,7 @@ export function ConnectionsPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{p.name}</span>
                     {p.read_only && <Badge tone="warn">read-only</Badge>}
+                    {p.patroni_url && <Badge tone="ok">Patroni</Badge>}
                     {!p.has_password && <Badge tone="neutral">no stored password</Badge>}
                   </div>
                   <div className="mt-1 font-mono text-xs text-ink-500">
@@ -133,26 +137,28 @@ function TestResult({ result }: { result: ServerInfo | Error }) {
         {result.in_recovery && <Badge tone="neutral">standby</Badge>}
       </div>
       <div className="mt-1 text-xs">
-        {result.databases.length} database{result.databases.length === 1 ? '' : 's'}:{' '}
-        <span className="font-mono">{result.databases.join(', ')}</span>
+        {result.databases.length} database{result.databases.length === 1 ? '' : 's'}: <span className="font-mono">{result.databases.join(', ')}</span>
       </div>
     </Alert>
   )
 }
 
-function ProfileForm({
-  initial,
-  onClose,
-  onSaved,
-}: {
-  initial: Profile | null
-  onClose: () => void
-  onSaved: () => void
-}) {
+function ProfileForm({ initial, onClose, onSaved }: { initial: Profile | null; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState<ProfileInput>(
-    initial ? { ...initial, password: '', sslrootcert: initial.sslrootcert ?? '' } : EMPTY,
+    initial
+      ? {
+          ...initial,
+          password: '',
+          sslrootcert: initial.sslrootcert ?? '',
+          patroni_url: initial.patroni_url ?? '',
+          patroni_username: initial.patroni_username ?? '',
+          patroni_password: '',
+        }
+      : EMPTY,
   )
   const [keepPassword, setKeepPassword] = useState(initial?.has_password ?? false)
+  const [keepPatroniPassword, setKeepPatroniPassword] = useState(initial?.has_patroni_password ?? false)
+  const [showPatroni, setShowPatroni] = useState(!!initial?.patroni_url)
   const [testResult, setTestResult] = useState<ServerInfo | Error | null>(null)
 
   function set<K extends keyof ProfileInput>(key: K, value: ProfileInput[K]) {
@@ -161,7 +167,15 @@ function ProfileForm({
 
   function payload(): ProfileInput {
     const password = initial && keepPassword ? null : form.password || ''
-    return { ...form, password, sslrootcert: form.sslrootcert || null }
+    const patroni_password = initial && keepPatroniPassword ? null : form.patroni_password || ''
+    return {
+      ...form,
+      password,
+      sslrootcert: form.sslrootcert || null,
+      patroni_url: showPatroni ? form.patroni_url || null : null,
+      patroni_username: showPatroni ? form.patroni_username || null : null,
+      patroni_password: showPatroni ? patroni_password : '',
+    }
   }
 
   const save = useMutation({
@@ -199,14 +213,7 @@ function ProfileForm({
             </Field>
           </div>
           <Field label="Port">
-            <Input
-              type="number"
-              min={1}
-              max={65535}
-              value={form.port}
-              onChange={(e) => set('port', Number(e.target.value))}
-              required
-            />
+            <Input type="number" min={1} max={65535} value={form.port} onChange={(e) => set('port', Number(e.target.value))} required />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -252,23 +259,48 @@ function ProfileForm({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Connect timeout (s)">
-            <Input
-              type="number"
-              min={1}
-              max={120}
-              value={form.connect_timeout}
-              onChange={(e) => set('connect_timeout', Number(e.target.value))}
-            />
+            <Input type="number" min={1} max={120} value={form.connect_timeout} onChange={(e) => set('connect_timeout', Number(e.target.value))} />
           </Field>
           <label className="flex items-end gap-2 pb-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.read_only}
-              onChange={(e) => set('read_only', e.target.checked)}
-              className="h-4 w-4 accent-accent-600"
-            />
+            <input type="checkbox" checked={form.read_only} onChange={(e) => set('read_only', e.target.checked)} className="h-4 w-4 accent-accent-600" />
             Read-only (disable all write actions)
           </label>
+        </div>
+
+        <div className="rounded-md border border-ink-200 bg-ink-50/50 p-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={showPatroni} onChange={(e) => setShowPatroni(e.target.checked)} className="h-4 w-4 accent-accent-600" />
+            Managed by Patroni
+          </label>
+          {showPatroni && (
+            <div className="mt-3 space-y-3">
+              <Field label="Patroni REST API URL" hint="Any member's REST endpoint, e.g. http://patroni1:8008. Used for the Cluster → Patroni page.">
+                <Input
+                  value={form.patroni_url ?? ''}
+                  onChange={(e) => set('patroni_url', e.target.value)}
+                  placeholder="http://patroni1:8008"
+                  required={showPatroni}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="REST API username" hint="Only needed for switchover, restart and other write operations.">
+                  <Input value={form.patroni_username ?? ''} onChange={(e) => set('patroni_username', e.target.value)} autoComplete="off" />
+                </Field>
+                <Field label="REST API password">
+                  <Input
+                    type="password"
+                    value={form.patroni_password ?? ''}
+                    placeholder={initial?.has_patroni_password && keepPatroniPassword ? '••••••••' : ''}
+                    autoComplete="new-password"
+                    onChange={(e) => {
+                      set('patroni_password', e.target.value)
+                      setKeepPatroniPassword(false)
+                    }}
+                  />
+                </Field>
+              </div>
+            </div>
+          )}
         </div>
 
         {testResult && <TestResult result={testResult} />}

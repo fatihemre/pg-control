@@ -20,7 +20,19 @@ router = APIRouter(prefix="/api/profiles", tags=["profiles"])
 def _out(profile: ConnectionProfile) -> ProfileOut:
     data = {c.name: getattr(profile, c.name) for c in ConnectionProfile.__table__.columns}
     data.pop("password_enc")
-    return ProfileOut(**data, has_password=profile.password_enc is not None)
+    data.pop("patroni_password_enc")
+    return ProfileOut(
+        **data,
+        has_password=profile.password_enc is not None,
+        has_patroni_password=profile.patroni_password_enc is not None,
+    )
+
+
+def _clean_patroni(data: dict) -> dict:
+    # An empty URL clears the Patroni integration entirely.
+    data["patroni_url"] = (data.get("patroni_url") or "").rstrip("/") or None
+    data["patroni_username"] = data.get("patroni_username") or None
+    return data
 
 
 @router.get("", response_model=list[ProfileOut])
@@ -31,9 +43,15 @@ async def list_profiles(db: DB, _: CurrentUser):
 
 @router.post("", response_model=ProfileOut, status_code=status.HTTP_201_CREATED)
 async def create_profile(body: ProfileCreate, db: DB, box: Box, _: AdminUser):
-    data = body.model_dump(exclude={"password"})
+    data = _clean_patroni(body.model_dump(exclude={"password", "patroni_password"}))
     profile = ConnectionProfile(
-        **data, password_enc=box.encrypt(body.password) if body.password else None
+        **data,
+        password_enc=box.encrypt(body.password) if body.password else None,
+        patroni_password_enc=(
+            box.encrypt(body.patroni_password)
+            if body.patroni_password and data["patroni_url"]
+            else None
+        ),
     )
     db.add(profile)
     try:
@@ -53,10 +71,17 @@ async def get_profile(profile: Profile, _: CurrentUser):
 async def update_profile(
     body: ProfileUpdate, profile: Profile, db: DB, box: Box, pools: Pools, _: AdminUser
 ):
-    for key, value in body.model_dump(exclude={"password"}).items():
+    data = _clean_patroni(body.model_dump(exclude={"password", "patroni_password"}))
+    for key, value in data.items():
         setattr(profile, key, value)
     if body.password is not None:
         profile.password_enc = box.encrypt(body.password) if body.password else None
+    if body.patroni_password is not None:
+        profile.patroni_password_enc = (
+            box.encrypt(body.patroni_password) if body.patroni_password else None
+        )
+    if data["patroni_url"] is None:
+        profile.patroni_password_enc = None
     try:
         await db.commit()
     except IntegrityError as exc:

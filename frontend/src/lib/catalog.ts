@@ -120,9 +120,7 @@ export const effectiveQuery = (profileId: number, db: string, role: string, sche
     queryFn: () => {
       const params = new URLSearchParams({ role })
       if (schema) params.set('schema', schema)
-      return api.get<EffectivePrivileges>(
-        `/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/effective-privileges?${params}`,
-      )
+      return api.get<EffectivePrivileges>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/effective-privileges?${params}`)
     },
     staleTime: 15_000,
   })
@@ -134,8 +132,7 @@ export function pgVersion(num: number): string {
 export const schemasQuery = (profileId: number, db: string) =>
   queryOptions({
     queryKey: ['profile', profileId, 'databases', db, 'schemas'],
-    queryFn: () =>
-      api.get<string[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/schemas`),
+    queryFn: () => api.get<string[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/schemas`),
     staleTime: 60_000,
   })
 
@@ -404,10 +401,7 @@ export type StatementOrder = 'total_time' | 'mean_time' | 'calls' | 'rows' | 'sh
 export const statementsQuery = (profileId: number, db: string, order: StatementOrder, limit: number) =>
   queryOptions({
     queryKey: ['profile', profileId, 'statements', db, order, limit],
-    queryFn: () =>
-      api.get<StatementsResult>(
-        `/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/statements?order=${order}&limit=${limit}`,
-      ),
+    queryFn: () => api.get<StatementsResult>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/statements?order=${order}&limit=${limit}`),
     staleTime: 10_000,
   })
 
@@ -459,16 +453,14 @@ const withSchema = (schema?: string) => (schema ? `?schema=${encodeURIComponent(
 export const tableStatsQuery = (profileId: number, db: string, schema?: string) =>
   queryOptions({
     queryKey: ['profile', profileId, 'table-stats', db, schema ?? ''],
-    queryFn: () =>
-      api.get<TableStats[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/table-stats${withSchema(schema)}`),
+    queryFn: () => api.get<TableStats[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/table-stats${withSchema(schema)}`),
     staleTime: 10_000,
   })
 
 export const indexStatsQuery = (profileId: number, db: string, schema?: string) =>
   queryOptions({
     queryKey: ['profile', profileId, 'index-stats', db, schema ?? ''],
-    queryFn: () =>
-      api.get<IndexStats[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/index-stats${withSchema(schema)}`),
+    queryFn: () => api.get<IndexStats[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/index-stats${withSchema(schema)}`),
     staleTime: 10_000,
   })
 
@@ -703,4 +695,56 @@ export const metricsQuery = (profileId: number, hours: number) =>
     queryKey: ['profile', profileId, 'metrics', hours],
     queryFn: () => api.get<MetricsHistory>(`/api/profiles/${profileId}/metrics?hours=${hours}`),
     staleTime: 30_000,
+  })
+
+export type PatroniMember = {
+  name: string
+  role: string
+  state: string
+  host: string | null
+  port: number | null
+  api_url: string | null
+  timeline: number | null
+  lag: number | null
+  lag_unknown: boolean
+  pending_restart: boolean
+  scheduled_restart: Record<string, unknown> | null
+  tags: Record<string, unknown>
+}
+
+export type PatroniHistory = { timeline: number; lsn: number | null; reason: string; timestamp: string | null; new_leader: string | null }
+
+export type PatroniStatus = {
+  scope: string | null
+  patroni_version: string | null
+  pause: boolean
+  scheduled_switchover: { at?: string; from?: string; to?: string } | null
+  leader: string | null
+  members: PatroniMember[]
+  node: {
+    name: string | null
+    scope: string | null
+    version: string | null
+    role: string | null
+    state: string | null
+    timeline: number | null
+    server_version: number | null
+    postmaster_start_time: string | null
+    dcs_last_seen: string | null
+    pending_restart: boolean
+    cluster_unlocked: boolean
+    xlog: Record<string, unknown>
+    replication: Array<Record<string, unknown>>
+  }
+  history: PatroniHistory[]
+  config: Record<string, unknown>
+}
+
+export type PatroniOperation = { ok: true; operation: string; message: string }
+
+export const patroniQuery = (profileId: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'patroni'],
+    queryFn: () => api.get<PatroniStatus>(`/api/profiles/${profileId}/patroni`),
+    staleTime: 5_000,
   })
