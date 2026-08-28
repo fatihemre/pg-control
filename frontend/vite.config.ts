@@ -8,6 +8,7 @@ export default defineConfig({
   server: {
     port: 7421,
     strictPort: true,
+    allowedHosts: ['host.docker.internal'],
     proxy: { '/api': { target: 'http://127.0.0.1:7420', changeOrigin: false } },
   },
   build: { outDir: 'dist', emptyOutDir: true },

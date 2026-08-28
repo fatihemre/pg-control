@@ -2,6 +2,8 @@ import { Link, Outlet, useNavigate } from '@tanstack/react-router'
 import { Database, KeyRound, LogOut, Settings2, ShieldCheck, Users } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { useLogout, useMe } from '../lib/auth'
+import { InstanceProvider } from '../lib/instance'
+import { InstancePicker } from './InstancePicker'
 import { cx } from './ui'
 
 type NavItem = { label: string; to: string; ready?: boolean }
@@ -26,7 +28,7 @@ const NAV: NavSection[] = [
     label: 'Users & Roles',
     icon: Users,
     items: [
-      { label: 'Roles', to: '/roles' },
+      { label: 'Roles', to: '/roles', ready: true },
       { label: 'Memberships', to: '/roles/memberships' },
       { label: 'Attributes', to: '/roles/attributes' },
     ],
@@ -46,7 +48,7 @@ const NAV: NavSection[] = [
     label: 'Security',
     icon: ShieldCheck,
     items: [
-      { label: 'Effective privileges', to: '/security/effective' },
+      { label: 'Effective privileges', to: '/security/effective', ready: true },
       { label: 'Ownership', to: '/security/ownership' },
       { label: 'Grants', to: '/security/grants' },
     ],
@@ -105,9 +107,16 @@ export function Layout() {
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto px-8 py-6">
-        <Outlet />
-      </main>
+      <InstanceProvider>
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <header className="flex h-12 shrink-0 items-center border-b border-ink-200 bg-white px-8">
+            <InstancePicker />
+          </header>
+          <main className="flex-1 overflow-y-auto px-8 py-6">
+            <Outlet />
+          </main>
+        </div>
+      </InstanceProvider>
     </div>
   )
 }

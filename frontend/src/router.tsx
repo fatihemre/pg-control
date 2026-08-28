@@ -9,6 +9,9 @@ import {
 import { Layout } from './components/Layout'
 import { meQuery } from './lib/auth'
 import { ConnectionsPage } from './pages/Connections'
+import { EffectivePrivilegesPage, type EffectiveSearch } from './pages/EffectivePrivileges'
+import { RoleDetailPage } from './pages/RoleDetail'
+import { RolesPage } from './pages/Roles'
 import { LoginPage } from './pages/Login'
 import { PlaceholderPage } from './pages/Placeholder'
 
@@ -53,6 +56,35 @@ const connectionsRoute = createRoute({
   component: ConnectionsPage,
 })
 
+const rolesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/roles',
+  component: RolesPage,
+})
+
+const roleDetailRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/roles/$name',
+  component: RoleDetailPage,
+})
+
+const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
+
+const effectiveRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/security/effective',
+  validateSearch: (s: Record<string, unknown>): EffectiveSearch => ({
+    db: str(s.db),
+    role: str(s.role),
+    schema: str(s.schema),
+  }),
+  component: EffectivePrivilegesPage,
+})
+
+const staticPlaceholders = ['/roles/memberships', '/roles/attributes'].map((path) =>
+  createRoute({ getParentRoute: () => appRoute, path, component: PlaceholderPage }),
+)
+
 const placeholderRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '$',
@@ -61,7 +93,15 @@ const placeholderRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  appRoute.addChildren([indexRoute, connectionsRoute, placeholderRoute]),
+  appRoute.addChildren([
+    indexRoute,
+    connectionsRoute,
+    rolesRoute,
+    roleDetailRoute,
+    effectiveRoute,
+    ...staticPlaceholders,
+    placeholderRoute,
+  ]),
 ])
 
 export const router = createRouter({ routeTree, context: { queryClient } })
