@@ -676,3 +676,31 @@ export const replicationQuery = (profileId: number, db: string) =>
     queryFn: () => api.get<Replication>(`/api/profiles/${profileId}/replication${db ? `?database=${encodeURIComponent(db)}` : ''}`),
     staleTime: 5_000,
   })
+
+export type MetricPoint = {
+  t: string
+  connections: number
+  active: number
+  idle_in_transaction: number
+  waiting: number
+  longest_xact_seconds: number
+  db_bytes: number
+  standby_count: number
+  lag_bytes: number | null
+  oldest_xid_age: number
+  commits_per_s: number | null
+  rollbacks_per_s: number | null
+  cache_hit: number | null
+  wal_bytes_per_s: number | null
+  deadlocks_per_s: number | null
+  temp_bytes_per_s: number | null
+}
+
+export type MetricsHistory = { interval_seconds: number; retention_hours: number; hours: number; points: MetricPoint[] }
+
+export const metricsQuery = (profileId: number, hours: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'metrics', hours],
+    queryFn: () => api.get<MetricsHistory>(`/api/profiles/${profileId}/metrics?hours=${hours}`),
+    staleTime: 30_000,
+  })

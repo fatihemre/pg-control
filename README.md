@@ -5,8 +5,8 @@ questions like *"why can't `reservation_api` insert into `sch_reservation.reserv
 by showing the full chain: role membership → inherited privileges → schema → object → **final access**.
 
 Scope: users & roles, permissions, effective privileges, server configuration,
-extensions, performance views, cluster overview and replication (standbys, slots,
-publications/subscriptions).
+extensions, performance views, cluster overview with health checks and metric trends,
+replication (standbys, slots, publications/subscriptions).
 
 ## Run (Docker)
 
@@ -31,6 +31,13 @@ PgControl uses the `74xx` range to avoid clashing with common defaults:
 | 7421 | Vite dev server (development only) |
 | 7414–7418 | Development PostgreSQL 14–18 (`docker-compose.dev.yml`) |
 | 7419 | Development streaming replica of PG 16 (`pg16-replica`) |
+
+## Metrics history
+
+A background task samples every registered instance (connections, transaction and WAL
+rates, cache hit, database size, replication lag, XID age) and keeps the history in the
+metadata database. Tune with `PGCONTROL_METRICS_INTERVAL_SECONDS` (default 60, `0`
+disables) and `PGCONTROL_METRICS_RETENTION_HOURS` (default 72).
 
 ## Development
 

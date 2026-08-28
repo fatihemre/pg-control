@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { RefreshCw } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { NoInstance, QueryState } from '../components/QueryState'
-import { Badge, Button, PageHeader, cx } from '../components/ui'
-import { overviewQuery, type Overview } from '../lib/catalog'
+import { Sparkline, type SparkPoint } from '../components/Sparkline'
+import { Badge, Button, PageHeader, Select, cx } from '../components/ui'
+import { metricsQuery, overviewQuery, type MetricPoint, type Overview } from '../lib/catalog'
 import { fmtBytes, fmtNum, fmtPct, fmtSeconds, fmtTime } from '../lib/format'
 import { useInstance } from '../lib/instance'
 
@@ -131,6 +132,8 @@ export function OverviewPage() {
             <Stat label="Cache hit" value={fmtPct(o.cache_hit_ratio)} />
           </div>
 
+          <Trends profileId={current.id} />
+
           <section>
             <h2 className="mb-2 text-sm font-semibold text-ink-800">Health checks</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -184,6 +187,81 @@ export function OverviewPage() {
         <QueryState query={ov} />
       )}
     </>
+  )
+}
+
+const RANGES = [
+  [1, 'Last hour'],
+  [6, 'Last 6 hours'],
+  [24, 'Last 24 hours'],
+  [72, 'Last 3 days'],
+] as const
+
+type Series = { label: string; pick: (p: MetricPoint) => number | null; format: (v: number) => string; tone?: 'accent' | 'warn' }
+
+const SERIES: Series[] = [
+  { label: 'Connections', pick: (p) => p.connections, format: (v) => fmtNum(Math.round(v)) },
+  { label: 'Commits / s', pick: (p) => p.commits_per_s, format: (v) => v.toFixed(1) },
+  { label: 'Rollbacks / s', pick: (p) => p.rollbacks_per_s, format: (v) => v.toFixed(2), tone: 'warn' },
+  { label: 'Cache hit', pick: (p) => p.cache_hit, format: (v) => fmtPct(v) },
+  { label: 'WAL / s', pick: (p) => p.wal_bytes_per_s, format: (v) => `${fmtBytes(v)}/s` },
+  { label: 'Idle in transaction', pick: (p) => p.idle_in_transaction, format: (v) => fmtNum(Math.round(v)), tone: 'warn' },
+  { label: 'Lock waits', pick: (p) => p.waiting, format: (v) => fmtNum(Math.round(v)), tone: 'warn' },
+  { label: 'Database size', pick: (p) => p.db_bytes, format: (v) => fmtBytes(v) },
+  { label: 'Replication lag', pick: (p) => p.lag_bytes, format: (v) => fmtBytes(v), tone: 'warn' },
+  { label: 'Oldest XID age', pick: (p) => p.oldest_xid_age, format: (v) => fmtNum(Math.round(v)) },
+]
+
+function Trends({ profileId }: { profileId: number }) {
+  const [hours, setHours] = useState<number>(6)
+  const m = useQuery({ ...metricsQuery(profileId, hours), refetchInterval: 60_000 })
+  const points = m.data?.points ?? []
+  const last = points.at(-1)
+  return (
+    <section>
+      <div className="mb-2 flex items-center justify-between gap-4">
+        <h2 className="min-w-0 text-sm font-semibold text-ink-800">
+          Trends{' '}
+          {m.data && (
+            <span className="ml-1 text-xs font-normal text-ink-500">
+              {m.data.interval_seconds > 0
+                ? `sampled every ${fmtSeconds(m.data.interval_seconds)}, ${m.data.retention_hours}h kept · ${points.length} sample(s)`
+                : 'background sampler disabled (PGCONTROL_METRICS_INTERVAL_SECONDS=0)'}
+            </span>
+          )}
+        </h2>
+        <span className="shrink-0">
+          <Select value={hours} onChange={(e) => setHours(Number(e.target.value))}>
+            {RANGES.map(([h, label]) => (
+              <option key={h} value={h}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </span>
+      </div>
+      {m.isError ? (
+        <div className="text-xs text-red-700">{(m.error as Error).message}</div>
+      ) : (
+        <div className="grid grid-cols-5 gap-3">
+          {SERIES.filter((s) => s.label !== 'Replication lag' || points.some((p) => p.lag_bytes !== null)).map((s) => {
+            const data: SparkPoint[] = points.map((p) => ({ t: p.t, v: s.pick(p) }))
+            const cur = last ? s.pick(last) : null
+            return (
+              <div key={s.label} className="rounded-md border border-ink-200 bg-white px-3 py-2">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-xs uppercase tracking-wide text-ink-500">{s.label}</span>
+                  <span className="font-mono text-xs text-ink-700">{cur === null || cur === undefined ? '—' : s.format(cur)}</span>
+                </div>
+                <div className="mt-1">
+                  <Sparkline points={data} format={s.format} tone={s.tone} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
   )
 }
 
