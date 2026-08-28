@@ -114,11 +114,16 @@ class PoolManager:
         async with self._lock:
             pool = self._pools.get(key)
             if pool is None:
+                # Fail fast with the real error (bad password, unknown database, unreachable
+                # host) instead of letting the pool retry silently until its timeout.
+                probe = await psycopg.AsyncConnection.connect(params.conninfo(dbname))
+                await probe.close()
                 pool = AsyncConnectionPool(
                     params.conninfo(dbname),
                     min_size=0,
                     max_size=self._max_size,
                     max_idle=300,
+                    timeout=15,
                     open=False,
                     kwargs={"row_factory": dict_row, "autocommit": True},
                 )

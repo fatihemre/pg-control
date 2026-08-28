@@ -3,12 +3,14 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import psycopg
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from psycopg_pool import PoolTimeout
 
 from pgcontrol import __version__
-from pgcontrol.api import auth, profiles
+from pgcontrol.api import auth, catalog, profiles
 from pgcontrol.bootstrap import ensure_admin_user
 from pgcontrol.config import get_settings
 from pgcontrol.db.migrate import upgrade_to_head
@@ -52,12 +54,22 @@ def create_app() -> FastAPI:
                     return JSONResponse({"detail": "Cross-site request rejected"}, 403)
         return await call_next(request)
 
+    @app.exception_handler(psycopg.OperationalError)
+    @app.exception_handler(PoolTimeout)
+    async def pg_unreachable(request: Request, exc: Exception):
+        return JSONResponse({"detail": f"PostgreSQL connection failed: {str(exc).strip()}"}, 502)
+
+    @app.exception_handler(psycopg.Error)
+    async def pg_error(request: Request, exc: psycopg.Error):
+        return JSONResponse({"detail": f"PostgreSQL error: {str(exc).strip()}"}, 502)
+
     @app.get("/api/health", tags=["meta"])
     async def health():
         return {"status": "ok", "version": __version__}
 
     app.include_router(auth.router)
     app.include_router(profiles.router)
+    app.include_router(catalog.router)
 
     static_dir = get_settings().resolve_static_dir()
     if static_dir is not None:
