@@ -2,6 +2,7 @@
 # Usage: docker compose -f docker-compose.dev.yml up -d
 # Superuser: postgres / postgres. Seeded with the "reservations" sample (docker/dev-init).
 x-pg: &pg
+  command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
   environment:
     POSTGRES_PASSWORD: postgres
   volumes:
