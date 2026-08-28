@@ -18,6 +18,7 @@ from pgcontrol.db.session import dispose_engine
 from pgcontrol.metrics import MetricsSampler
 from pgcontrol.pg.connection import PoolManager
 from pgcontrol.security.crypto import SecretBox
+from pgcontrol.security.oidc import OidcClient
 
 log = logging.getLogger("pgcontrol")
 
@@ -33,6 +34,7 @@ async def lifespan(app: FastAPI):
     app.state.pools = PoolManager()
     app.state.sampler = MetricsSampler(app.state.secret_box)
     app.state.sampler.start()
+    app.state.oidc = OidcClient(settings) if settings.oidc_enabled else None
     log.info("PgControl %s listening on http://%s:%s", __version__, settings.host, settings.port)
     yield
     await app.state.sampler.stop()

@@ -8,6 +8,14 @@ export const meQuery = queryOptions({
   retry: false,
 })
 
+export type Providers = { local: boolean; oidc: { name: string } | null }
+
+export const providersQuery = queryOptions({
+  queryKey: ['auth', 'providers'],
+  queryFn: () => api.get<Providers>('/api/auth/providers'),
+  staleTime: Infinity,
+})
+
 export function useMe() {
   return useQuery(meQuery)
 }

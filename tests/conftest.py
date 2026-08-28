@@ -14,6 +14,10 @@ def _env(tmp_path_factory: pytest.TempPathFactory) -> None:
     os.environ["PGCONTROL_DATA_DIR"] = str(data_dir)
     os.environ["PGCONTROL_STATIC_DIR"] = str(data_dir / "no-static")
     os.environ["PGCONTROL_METRICS_INTERVAL_SECONDS"] = "0"
+    os.environ["PGCONTROL_OIDC_ISSUER"] = "https://idp.test"
+    os.environ["PGCONTROL_OIDC_CLIENT_ID"] = "pgcontrol"
+    os.environ["PGCONTROL_OIDC_ROLE_CLAIM"] = "groups"
+    os.environ["PGCONTROL_OIDC_ROLE_MAP"] = "pg-admins:admin,pg-ops:operator"
 
 
 @pytest.fixture

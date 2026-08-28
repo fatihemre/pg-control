@@ -27,8 +27,10 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(64), unique=True)
-    password_hash: Mapped[str] = mapped_column(String(255))
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)  # None: SSO only
     role: Mapped[str] = mapped_column(String(16), default="viewer")  # admin | operator | viewer
+    auth_provider: Mapped[str] = mapped_column(String(16), default="local")  # local | oidc
+    subject: Mapped[str | None] = mapped_column(String(255), nullable=True)  # OIDC sub
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

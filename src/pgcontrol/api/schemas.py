@@ -17,6 +17,7 @@ class UserOut(BaseModel):
     id: int
     username: str
     role: str
+    auth_provider: str = "local"
 
 
 class ProfileBase(BaseModel):

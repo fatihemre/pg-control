@@ -20,7 +20,7 @@ async def test_login_bad_password(client: AsyncClient):
 async def test_login_logout(admin: AsyncClient):
     me = await admin.get("/api/auth/me")
     assert me.status_code == 200
-    assert me.json() == {"id": 1, "username": "admin", "role": "admin"}
+    assert me.json() == {"id": 1, "username": "admin", "role": "admin", "auth_provider": "local"}
     assert (await admin.post("/api/auth/logout")).status_code == 204
     assert (await admin.get("/api/auth/me")).status_code == 401
 

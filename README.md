@@ -39,6 +39,18 @@ rates, cache hit, database size, replication lag, XID age) and keeps the history
 metadata database. Tune with `PGCONTROL_METRICS_INTERVAL_SECONDS` (default 60, `0`
 disables) and `PGCONTROL_METRICS_RETENTION_HOURS` (default 72).
 
+## Single sign-on (OpenID Connect)
+
+Set `PGCONTROL_OIDC_ISSUER` and `PGCONTROL_OIDC_CLIENT_ID` (plus `_CLIENT_SECRET` for
+confidential clients) and the login page offers "Continue with …". The authorization
+code flow with PKCE is used; ID tokens are verified against the provider's JWKS. Users
+are created on first login (`PGCONTROL_OIDC_AUTO_CREATE`) and their PgControl role comes
+from `PGCONTROL_OIDC_ROLE_CLAIM` + `PGCONTROL_OIDC_ROLE_MAP`
+(e.g. `groups` and `pgcontrol-admins:admin,pgcontrol-operators:operator`), falling back
+to `PGCONTROL_OIDC_DEFAULT_ROLE`. Register `https://<host>/api/auth/oidc/callback` as
+the redirect URI (`PGCONTROL_OIDC_REDIRECT_URL` when running behind a proxy). Local
+accounts keep working alongside SSO.
+
 ## Development
 
 ```sh

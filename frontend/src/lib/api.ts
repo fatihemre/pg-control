@@ -42,7 +42,7 @@ export const api = {
   delete: <T>(url: string) => request<T>('DELETE', url),
 }
 
-export type User = { id: number; username: string; role: 'admin' | 'operator' | 'viewer' }
+export type User = { id: number; username: string; role: 'admin' | 'operator' | 'viewer'; auth_provider: 'local' | 'oidc' }
 
 export type SslMode = 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full'
 

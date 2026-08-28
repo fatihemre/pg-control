@@ -19,6 +19,23 @@ class Settings(BaseSettings):
     metrics_interval_seconds: int = 60  # 0 disables the background sampler
     metrics_retention_hours: int = 72
 
+    # OpenID Connect single sign-on (optional; enabled when issuer and client_id are set)
+    oidc_issuer: str | None = None
+    oidc_client_id: str | None = None
+    oidc_client_secret: str | None = None
+    oidc_scopes: str = "openid profile email"
+    oidc_display_name: str = "Single sign-on"
+    oidc_redirect_url: str | None = None  # public callback URL when behind a proxy
+    oidc_username_claim: str = "preferred_username"
+    oidc_role_claim: str | None = None  # claim holding groups/roles (string or list)
+    oidc_role_map: str = ""  # "idp-group:admin,other-group:operator"
+    oidc_default_role: str | None = "viewer"  # None = users without a mapped role are denied
+    oidc_auto_create: bool = True
+
+    @property
+    def oidc_enabled(self) -> bool:
+        return bool(self.oidc_issuer and self.oidc_client_id)
+
     @property
     def database_path(self) -> Path:
         return self.data_dir / "pgcontrol.db"

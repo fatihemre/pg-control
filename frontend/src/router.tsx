@@ -35,6 +35,8 @@ export const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
 })
 
+const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
+
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: () => <Outlet />,
 })
@@ -42,6 +44,7 @@ const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
+  validateSearch: (s: Record<string, unknown>): { error?: string } => ({ error: str(s.error) }),
   component: LoginPage,
 })
 
@@ -83,8 +86,6 @@ const roleDetailRoute = createRoute({
   path: '/roles/$name',
   component: RoleDetailPage,
 })
-
-const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
 
 const effectiveRoute = createRoute({
   getParentRoute: () => appRoute,
