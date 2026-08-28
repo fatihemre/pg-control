@@ -30,6 +30,12 @@ export type Change =
   | { op: 'create_role'; name: string; attributes?: RoleAttributes; member_of?: string[] }
   | { op: 'drop_role'; name: string; reassign_to?: string; drop_owned?: boolean }
   | { op: 'alter_role_config'; role: string; name: string; value?: string; database?: string }
+  | { op: 'alter_system'; name: string; value?: string }
+  | { op: 'reload_conf' }
+  | { op: 'alter_database_config'; database: string; name: string; value?: string }
+  | { op: 'create_extension'; name: string; schema?: string; version?: string; cascade?: boolean }
+  | { op: 'update_extension'; name: string; version?: string }
+  | { op: 'drop_extension'; name: string; cascade?: boolean }
   | {
       op: 'alter_default'
       action: 'grant' | 'revoke'
@@ -44,7 +50,7 @@ export type Change =
 export type PendingChange = { id: string; database: string | null; label: string; change: Change }
 
 export type Statement = { sql: string; description: string }
-export type PlanResult = { statements: Statement[]; warnings: string[]; server_version_num: number }
+export type PlanResult = { statements: Statement[]; warnings: string[]; server_version_num: number; atomic: boolean }
 export type ApplyResult = {
   ok: boolean
   executed: number
@@ -95,6 +101,18 @@ export function describeChange(c: Change): string {
       return `DROP ROLE ${c.name}`
     case 'alter_role_config':
       return c.value === undefined ? `RESET ${c.name} for ${c.role}` : `SET ${c.name} for ${c.role}`
+    case 'alter_system':
+      return c.value === undefined ? `ALTER SYSTEM RESET ${c.name}` : `ALTER SYSTEM SET ${c.name} = ${c.value}`
+    case 'reload_conf':
+      return 'Reload configuration (pg_reload_conf)'
+    case 'alter_database_config':
+      return c.value === undefined ? `RESET ${c.name} for database ${c.database}` : `SET ${c.name} for database ${c.database}`
+    case 'create_extension':
+      return `CREATE EXTENSION ${c.name}${c.schema ? ` SCHEMA ${c.schema}` : ''}${c.version ? ` VERSION ${c.version}` : ''}`
+    case 'update_extension':
+      return `ALTER EXTENSION ${c.name} UPDATE${c.version ? ` TO ${c.version}` : ''}`
+    case 'drop_extension':
+      return `DROP EXTENSION ${c.name}${c.cascade ? ' CASCADE' : ''}`
     case 'alter_default':
       return `ALTER DEFAULT PRIVILEGES ${c.action.toUpperCase()} ${c.privileges.join(', ')} ON ${c.object_type.toUpperCase()} ${c.action === 'grant' ? 'TO' : 'FROM'} ${c.grantee}`
   }
@@ -104,6 +122,7 @@ type BasketValue = {
   items: PendingChange[]
   add: (change: Change, database: string | null) => void
   remove: (id: string) => void
+  removeMany: (ids: string[]) => void
   clear: () => void
   open: boolean
   setOpen: (v: boolean) => void
@@ -151,6 +170,7 @@ export function BasketProvider({ children }: { children: ReactNode }) {
           { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, database, label: describeChange(change), change },
         ]),
       remove: (id) => persist(items.filter((i) => i.id !== id)),
+      removeMany: (ids) => persist(items.filter((i) => !ids.includes(i.id))),
       clear: () => persist([]),
       open,
       setOpen,

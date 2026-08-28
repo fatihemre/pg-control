@@ -21,9 +21,10 @@ const NAV: NavSection[] = [
     label: 'Configuration',
     icon: Settings2,
     items: [
-      { label: 'Server settings', to: '/config/settings' },
-      { label: 'Runtime parameters', to: '/config/runtime' },
-      { label: 'Extensions', to: '/config/extensions' },
+      { label: 'Server settings', to: '/config/settings', ready: true },
+      { label: 'Role & DB overrides', to: '/config/overrides', ready: true },
+      { label: 'Client auth (pg_hba)', to: '/config/hba', ready: true },
+      { label: 'Extensions', to: '/config/extensions', ready: true },
     ],
   },
   {

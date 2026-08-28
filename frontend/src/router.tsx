@@ -13,6 +13,10 @@ import { EffectivePrivilegesPage, type EffectiveSearch } from './pages/Effective
 import { RoleDetailPage } from './pages/RoleDetail'
 import { RolesPage } from './pages/Roles'
 import { AuditPage } from './pages/Audit'
+import { ClientAuthPage } from './pages/ClientAuth'
+import { ExtensionsPage } from './pages/Extensions'
+import { OverridesPage } from './pages/Overrides'
+import { ServerSettingsPage } from './pages/ServerSettings'
 import { MembershipsPage } from './pages/Memberships'
 import { PermissionsPage } from './pages/Permissions'
 import { RoleAttributesPage } from './pages/RoleAttributes'
@@ -114,6 +118,11 @@ const auditRoute = createRoute({
   component: AuditPage,
 })
 
+const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: '/config/settings', component: ServerSettingsPage })
+const overridesRoute = createRoute({ getParentRoute: () => appRoute, path: '/config/overrides', component: OverridesPage })
+const hbaRoute = createRoute({ getParentRoute: () => appRoute, path: '/config/hba', component: ClientAuthPage })
+const extensionsRoute = createRoute({ getParentRoute: () => appRoute, path: '/config/extensions', component: ExtensionsPage })
+
 const placeholderRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '$',
@@ -132,6 +141,10 @@ const routeTree = rootRoute.addChildren([
     attributesRoute,
     permissionsRoute,
     auditRoute,
+    settingsRoute,
+    overridesRoute,
+    hbaRoute,
+    extensionsRoute,
     placeholderRoute,
   ]),
 ])

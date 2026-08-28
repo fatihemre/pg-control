@@ -22,7 +22,7 @@ export function BasketButton() {
 }
 
 export function BasketModal() {
-  const { items, remove, clear, open, setOpen } = useBasket()
+  const { items, remove, removeMany, clear, open, setOpen } = useBasket()
   const { current } = useInstance()
   const me = useMe()
   const plan = usePlan(current?.id ?? 0)
@@ -55,15 +55,17 @@ export function BasketModal() {
 
   const run = async () => {
     const out: GroupResult[] = []
+    const applied: string[] = []
     for (const g of groups) {
       try {
         const r = await apply.mutateAsync({ database: g.database, operations: g.items.map((i) => i.change) })
         out.push({ database: g.database, apply: r })
-        if (r.ok) for (const i of g.items) remove(i.id)
+        if (r.ok) applied.push(...g.items.map((i) => i.id))
       } catch (e) {
         out.push({ database: g.database, error: (e as Error).message })
       }
     }
+    removeMany(applied)
     setResults(out)
     setStage('done')
   }
@@ -80,7 +82,7 @@ export function BasketModal() {
             groups.map((g) => (
               <div key={g.database ?? '__default'}>
                 <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
-                  {g.database ? `Database ${g.database}` : 'Cluster-wide (roles)'}
+                  {g.database ? `Database ${g.database}` : 'Cluster-wide'}
                 </div>
                 <ul className="divide-y divide-ink-100 rounded-md border border-ink-200">
                   {g.items.map((i) => (
@@ -111,7 +113,7 @@ export function BasketModal() {
           {results.map((r) => (
             <div key={r.database ?? '__default'}>
               <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
-                {r.database ? `Database ${r.database}` : 'Cluster-wide (roles)'}
+                {r.database ? `Database ${r.database}` : 'Cluster-wide'}
               </div>
               {r.error && <Alert tone="error">{r.error}</Alert>}
               {r.plan && <Statements statements={r.plan.statements} />}
@@ -132,7 +134,10 @@ export function BasketModal() {
               {busy && <Loader2 className="h-4 w-4 animate-spin" />} Apply {results.reduce((n, r) => n + (r.plan?.statements.length ?? 0), 0)} statement(s)
             </Button>
           </div>
-          <p className="text-xs text-ink-500">Each database group runs in a single transaction; a failing statement rolls the whole group back.</p>
+          <p className="text-xs text-ink-500">
+            Each database group runs in a single transaction; a failing statement rolls the whole group back. Groups containing ALTER SYSTEM run
+            statement by statement instead.
+          </p>
         </div>
       )}
 
@@ -141,7 +146,7 @@ export function BasketModal() {
           {results.map((r) => (
             <div key={r.database ?? '__default'}>
               <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
-                {r.database ? `Database ${r.database}` : 'Cluster-wide (roles)'}
+                {r.database ? `Database ${r.database}` : 'Cluster-wide'}
               </div>
               {r.error && <Alert tone="error">{r.error}</Alert>}
               {r.apply && (

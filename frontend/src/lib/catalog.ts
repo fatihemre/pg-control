@@ -215,3 +215,93 @@ export const auditQuery = (profileId?: number) =>
     queryFn: () => api.get<AuditEntry[]>(`/api/audit?limit=200${profileId ? `&profile_id=${profileId}` : ''}`),
     staleTime: 10_000,
   })
+
+export type Setting = {
+  name: string
+  setting: string | null
+  unit: string | null
+  category: string
+  short_desc: string
+  extra_desc: string | null
+  context: 'internal' | 'postmaster' | 'sighup' | 'superuser-backend' | 'backend' | 'superuser' | 'user'
+  vartype: 'bool' | 'integer' | 'real' | 'string' | 'enum'
+  source: string
+  min_val: string | null
+  max_val: string | null
+  enumvals: string[] | null
+  boot_val: string | null
+  reset_val: string | null
+  sourcefile: string | null
+  sourceline: number | null
+  pending_restart: boolean
+  is_default: boolean
+}
+
+export const settingsQuery = (profileId: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'settings'],
+    queryFn: () => api.get<Setting[]>(`/api/profiles/${profileId}/settings`),
+  })
+
+export type FileSetting = {
+  sourcefile: string
+  sourceline: number
+  seqno: number
+  name: string
+  setting: string | null
+  applied: boolean
+  error: string | null
+}
+
+export const fileSettingsQuery = (profileId: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'file-settings'],
+    queryFn: () => api.get<{ readable: boolean; rows: FileSetting[] }>(`/api/profiles/${profileId}/file-settings`),
+  })
+
+export type HbaRule = {
+  rule_number: number | null
+  file_name: string | null
+  line_number: number | null
+  type: string | null
+  database: string[] | null
+  user_name: string[] | null
+  address: string | null
+  netmask: string | null
+  auth_method: string | null
+  options: string[] | null
+  error: string | null
+}
+
+export const hbaQuery = (profileId: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'hba'],
+    queryFn: () => api.get<{ readable: boolean; rows: HbaRule[] }>(`/api/profiles/${profileId}/hba`),
+  })
+
+export type RoleDbSetting = { role: string | null; database: string | null; name: string; value: string }
+
+export const roleDbSettingsQuery = (profileId: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'role-db-settings'],
+    queryFn: () => api.get<RoleDbSetting[]>(`/api/profiles/${profileId}/role-db-settings`),
+  })
+
+export type Extension = {
+  name: string
+  default_version: string | null
+  installed_version: string | null
+  comment: string | null
+  schema: string | null
+  relocatable: boolean | null
+  superuser_required: boolean | null
+  trusted: boolean | null
+  versions: string[]
+  update_available: boolean
+}
+
+export const extensionsQuery = (profileId: number, db: string) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'db', db, 'extensions'],
+    queryFn: () => api.get<Extension[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/extensions`),
+  })
