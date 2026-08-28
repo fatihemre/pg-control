@@ -189,6 +189,77 @@ class DropExtensionOp(_Model):
     cascade: bool = False
 
 
+OWNER_KEYWORD = {
+    "database": "DATABASE",
+    "schema": "SCHEMA",
+    "table": "TABLE",
+    "partitioned table": "TABLE",
+    "view": "VIEW",
+    "materialized view": "MATERIALIZED VIEW",
+    "foreign table": "FOREIGN TABLE",
+    "sequence": "SEQUENCE",
+    "function": "FUNCTION",
+    "window function": "FUNCTION",
+    "procedure": "PROCEDURE",
+    "aggregate": "AGGREGATE",
+}
+ROUTINE_KINDS = {"function", "window function", "procedure", "aggregate"}
+
+
+class AlterOwnerOp(_Model):
+    """ALTER <kind> … OWNER TO; kind values match the ownership listing."""
+
+    op: Literal["alter_owner"]
+    kind: str
+    schema_name: str | None = Field(default=None, alias="schema")
+    name: str
+    args: str | None = None
+    new_owner: str
+
+    @field_validator("kind")
+    @classmethod
+    def _kind(cls, v: str) -> str:
+        if v not in OWNER_KEYWORD:
+            raise ValueError(f"unsupported object kind {v!r}")
+        return v
+
+
+class ReassignOwnedOp(_Model):
+    op: Literal["reassign_owned"]
+    role: str
+    new_owner: str
+
+
+class CancelBackendOp(_Model):
+    op: Literal["cancel_backend"]
+    pid: int = Field(gt=0)
+
+
+class TerminateBackendOp(_Model):
+    op: Literal["terminate_backend"]
+    pid: int = Field(gt=0)
+
+
+class VacuumOp(_Model):
+    """VACUUM [FULL] [ANALYZE] table — cannot run inside a transaction."""
+
+    op: Literal["vacuum"]
+    schema_name: str = Field(alias="schema")
+    name: str
+    analyze: bool = False
+    full: bool = False
+
+
+class AnalyzeOp(_Model):
+    op: Literal["analyze"]
+    schema_name: str = Field(alias="schema")
+    name: str
+
+
+class ResetStatementsOp(_Model):
+    op: Literal["reset_statements"]
+
+
 class AlterDefaultOp(_Model):
     op: Literal["alter_default"]
     action: Literal["grant", "revoke"]
@@ -217,7 +288,14 @@ Change = Annotated[
     | AlterDatabaseConfigOp
     | CreateExtensionOp
     | UpdateExtensionOp
-    | DropExtensionOp,
+    | DropExtensionOp
+    | AlterOwnerOp
+    | ReassignOwnedOp
+    | CancelBackendOp
+    | TerminateBackendOp
+    | VacuumOp
+    | AnalyzeOp
+    | ResetStatementsOp,
     Field(discriminator="op"),
 ]
 
@@ -400,6 +478,25 @@ class _Renderer:
                 return [self.update_extension(op)]
             case DropExtensionOp():
                 return [self.drop_extension(op)]
+            case AlterOwnerOp():
+                return [await self.alter_owner(op)]
+            case ReassignOwnedOp():
+                return [self.reassign_owned(op)]
+            case CancelBackendOp():
+                return [self.signal_backend(op.pid, cancel=True)]
+            case TerminateBackendOp():
+                return [self.signal_backend(op.pid, cancel=False)]
+            case VacuumOp():
+                return [self.vacuum(op)]
+            case AnalyzeOp():
+                return [self.analyze(op)]
+            case ResetStatementsOp():
+                return [
+                    self.stmt(
+                        sql.SQL("SELECT pg_stat_statements_reset()"),
+                        "Reset pg_stat_statements counters",
+                    )
+                ]
         raise ValueError(f"unsupported operation {op!r}")  # pragma: no cover
 
     async def grant(self, op: GrantOp) -> Statement:
@@ -567,6 +664,68 @@ class _Renderer:
             q += sql.SQL(" CASCADE")
             self.warnings.append(f"DROP EXTENSION {op.name} CASCADE drops every dependent object")
         return self.stmt(q, f"Drop extension {op.name}")
+
+    async def alter_owner(self, op: AlterOwnerOp) -> Statement:
+        kw = sql.SQL(OWNER_KEYWORD[op.kind])
+        if op.kind in ("database", "schema"):
+            target = sql.SQL("{} {}").format(kw, sql.Identifier(op.name))
+        else:
+            if not op.schema_name:
+                raise ValueError("schema is required")
+            ident = sql.Identifier(op.schema_name, op.name)
+            if op.kind in ROUTINE_KINDS:
+                args = await self._function_args(op.schema_name, op.name, op.args or "")
+                target = sql.SQL("{} {}({})").format(kw, ident, sql.SQL(args))
+            else:
+                target = sql.SQL("{} {}").format(kw, ident)
+        q = sql.SQL("ALTER {} OWNER TO {}").format(target, sql.Identifier(op.new_owner))
+        label = f"{op.schema_name}.{op.name}" if op.schema_name else op.name
+        return self.stmt(q, f"Change owner of {op.kind} {label} to {op.new_owner}")
+
+    def reassign_owned(self, op: ReassignOwnedOp) -> Statement:
+        self.warnings.append(
+            "REASSIGN OWNED only affects objects in the current database (plus databases, "
+            "tablespaces and other shared objects); repeat in other databases as needed"
+        )
+        q = sql.SQL("REASSIGN OWNED BY {} TO {}").format(
+            sql.Identifier(op.role), sql.Identifier(op.new_owner)
+        )
+        return self.stmt(q, f"Reassign everything owned by {op.role} to {op.new_owner}")
+
+    def signal_backend(self, pid: int, cancel: bool) -> Statement:
+        fn = "pg_cancel_backend" if cancel else "pg_terminate_backend"
+        q = sql.SQL("SELECT {}({})").format(sql.SQL(fn), sql.Literal(pid))
+        if not cancel:
+            self.warnings.append(
+                f"Terminating backend {pid} disconnects the client and rolls back its transaction"
+            )
+        verb = "Cancel the running query of" if cancel else "Terminate"
+        return self.stmt(q, f"{verb} backend {pid}")
+
+    def vacuum(self, op: VacuumOp) -> Statement:
+        opts = []
+        if op.full:
+            opts.append("FULL")
+            self.warnings.append(
+                f"VACUUM FULL rewrites {op.schema_name}.{op.name} under an ACCESS EXCLUSIVE "
+                "lock; reads and writes are blocked until it finishes"
+            )
+        if op.analyze:
+            opts.append("ANALYZE")
+        self.warnings.append(
+            "VACUUM cannot run inside a transaction; this group is applied statement by "
+            "statement without rollback"
+        )
+        q = sql.SQL("VACUUM {}{}").format(
+            sql.SQL("(" + ", ".join(opts) + ") ") if opts else sql.SQL(""),
+            sql.Identifier(op.schema_name, op.name),
+        )
+        what = "VACUUM " + " ".join(opts) if opts else "VACUUM"
+        return self.stmt(q, f"{what} {op.schema_name}.{op.name}", transactional=False)
+
+    def analyze(self, op: AnalyzeOp) -> Statement:
+        q = sql.SQL("ANALYZE {}").format(sql.Identifier(op.schema_name, op.name))
+        return self.stmt(q, f"ANALYZE {op.schema_name}.{op.name}")
 
     def alter_default(self, op: AlterDefaultOp) -> Statement:
         q = sql.SQL("ALTER DEFAULT PRIVILEGES")

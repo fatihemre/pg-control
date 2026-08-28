@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 
 from pgcontrol.api.deps import Box, Pools, Profile, profile_params
-from pgcontrol.pg.catalog import config, grants, privileges, roles
+from pgcontrol.pg.catalog import config, grants, ownership, perf, privileges, roles
 from pgcontrol.pg.catalog.common import server_version_num
 from pgcontrol.security.auth import CurrentUser
 
@@ -148,3 +148,87 @@ async def list_extensions(dbname: str, profile: Profile, box: Box, pools: Pools,
     async with pool.connection() as conn:
         version = await server_version_num(conn)
         return [e.to_dict() for e in await config.list_extensions(conn, version)]
+
+
+@router.get("/databases/{dbname}/grants-all")
+async def list_all_grants(dbname: str, profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    """Every explicit or default ACL entry of the database, flattened for the Grants page."""
+    pool = await _pool(profile, box, pools, dbname)
+    out = []
+    async with pool.connection() as conn:
+        for kind in ("database", "schema", "table", "sequence", "function"):
+            for obj in await grants.list_grants(conn, kind):
+                for g in obj.grants:
+                    out.append(
+                        {
+                            "kind": obj.kind,
+                            "schema": obj.schema,
+                            "name": obj.name,
+                            "args": obj.args,
+                            "owner": obj.owner,
+                            "acl_is_default": obj.acl_is_default,
+                            "grantee": g.grantee,
+                            "privilege": g.privilege,
+                            "grantable": g.grantable,
+                            "grantor": g.grantor,
+                        }
+                    )
+    return out
+
+
+@router.get("/databases/{dbname}/ownership")
+async def list_ownership(dbname: str, profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools, dbname)
+    async with pool.connection() as conn:
+        return [o.to_dict() for o in await ownership.list_owned_objects(conn)]
+
+
+@router.get("/activity")
+async def list_activity(profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools)
+    async with pool.connection() as conn:
+        sessions = await perf.list_activity(conn)
+        blocked = await perf.list_blocked(conn)
+    return {"sessions": [asdict(s) for s in sessions], "blocked": [asdict(b) for b in blocked]}
+
+
+@router.get("/databases/{dbname}/statements")
+async def list_statements(
+    dbname: str,
+    profile: Profile,
+    box: Box,
+    pools: Pools,
+    _: CurrentUser,
+    order: Annotated[
+        str, Query(pattern="^(total_time|mean_time|calls|rows|shared_read|temp)$")
+    ] = "total_time",
+    limit: int = 100,
+):
+    pool = await _pool(profile, box, pools, dbname)
+    async with pool.connection() as conn:
+        return asdict(await perf.list_statements(conn, order, limit))
+
+
+@router.get("/databases/{dbname}/table-stats")
+async def list_table_stats(
+    dbname: str, profile: Profile, box: Box, pools: Pools, _: CurrentUser, schema: str | None = None
+):
+    pool = await _pool(profile, box, pools, dbname)
+    async with pool.connection() as conn:
+        return [asdict(t) for t in await perf.table_stats(conn, schema)]
+
+
+@router.get("/databases/{dbname}/index-stats")
+async def list_index_stats(
+    dbname: str, profile: Profile, box: Box, pools: Pools, _: CurrentUser, schema: str | None = None
+):
+    pool = await _pool(profile, box, pools, dbname)
+    async with pool.connection() as conn:
+        return [asdict(i) for i in await perf.index_stats(conn, schema)]
+
+
+@router.get("/db-stats")
+async def list_db_stats(profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools)
+    async with pool.connection() as conn:
+        return [asdict(d) for d in await perf.database_stats(conn)]

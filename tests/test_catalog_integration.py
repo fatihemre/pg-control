@@ -244,3 +244,79 @@ async def test_alter_system_and_extension_apply(conn):
         await conn.execute("SELECT * FROM pg_file_settings WHERE name = 'work_mem'")
     ).fetchone()
     assert row is None
+
+
+async def test_ownership_listing(conn):
+    from pgcontrol.pg.catalog import ownership
+
+    objs = await ownership.list_owned_objects(conn)
+    by_key = {(o.kind, o.schema, o.name): o.owner for o in objs}
+    assert by_key[("schema", None, "sch_billing")] == "reservation_owner"
+    assert by_key[("table", "sch_reservation", "reservations")] == "reservation_owner"
+    assert by_key[("view", "sch_reservation", "upcoming")] == "reservation_owner"
+    assert by_key[("sequence", "sch_reservation", "rooms_id_seq")] == "reservation_owner"
+    fn = next(o for o in objs if o.kind == "function" and o.name == "room_count")
+    assert fn.args == "" and fn.owner == "reservation_owner"
+    assert by_key[("database", None, "reservations")] == "postgres"
+
+
+async def test_perf_catalog(conn):
+    from pgcontrol.pg.catalog import perf
+
+    sessions = await perf.list_activity(conn)
+    me = next(s for s in sessions if s.is_self)
+    assert me.database == "reservations" and me.state == "active"
+    assert me.blocked_by == []
+    assert await perf.list_blocked(conn) == []
+
+    tables = {(t.schema, t.name): t for t in await perf.table_stats(conn)}
+    assert ("sch_reservation", "reservations") in tables
+    assert tables[("sch_reservation", "reservations")].total_bytes >= 0
+    assert {t.schema for t in await perf.table_stats(conn, "sch_billing")} == {"sch_billing"}
+    idx = {i.name: i for i in await perf.index_stats(conn)}
+    assert idx["reservations_pkey"].is_primary and idx["reservations_pkey"].is_valid
+    dbs = {d.name: d for d in await perf.database_stats(conn)}
+    assert dbs["reservations"].numbackends >= 1 and dbs["reservations"].size_bytes > 0
+
+    stmts = await perf.list_statements(conn)
+    if stmts.available:
+        assert stmts.rows and all("query" in r for r in stmts.rows)
+    else:
+        assert stmts.reason
+
+
+async def test_alter_owner_and_maintenance_apply(conn):
+    from pgcontrol.pg.catalog import ownership
+    from pgcontrol.pg.changes import ChangeSet, apply_plan, build_plan
+
+    version = await server_version_num(conn)
+    ops = [
+        {
+            "op": "alter_owner",
+            "kind": "table",
+            "schema": "sch_reservation",
+            "name": "rooms",
+            "new_owner": "reservation_admin",
+        },
+        {
+            "op": "alter_owner",
+            "kind": "function",
+            "schema": "sch_reservation",
+            "name": "room_count",
+            "args": "",
+            "new_owner": "reservation_admin",
+        },
+        {"op": "analyze", "schema": "sch_reservation", "name": "rooms"},
+        {"op": "vacuum", "schema": "sch_reservation", "name": "rooms", "analyze": True},
+    ]
+    p = await build_plan(conn, ChangeSet(operations=ops), version)
+    assert (await apply_plan(conn, p)).ok
+    owners = {(o.kind, o.name): o.owner for o in await ownership.list_owned_objects(conn)}
+    assert owners[("table", "rooms")] == "reservation_admin"
+    assert owners[("function", "room_count")] == "reservation_admin"
+
+    undo = [{"op": "reassign_owned", "role": "reservation_admin", "new_owner": "reservation_owner"}]
+    assert (await apply_plan(conn, await build_plan(conn, ChangeSet(operations=undo), version))).ok
+    owners = {(o.kind, o.name): o.owner for o in await ownership.list_owned_objects(conn)}
+    assert owners[("table", "rooms")] == "reservation_owner"
+    assert owners[("function", "room_count")] == "reservation_owner"

@@ -180,3 +180,47 @@ async def test_plan_without_alter_system_is_atomic():
 async def test_invalid_guc_name_rejected():
     with pytest.raises(PlanError):
         await plan(140000, {"op": "alter_system", "name": "a..b", "value": "1"})
+
+
+async def test_ownership_and_maintenance_statements():
+    p = await plan(
+        140000,
+        {"op": "alter_owner", "kind": "table", "schema": "s", "name": "t", "new_owner": "o"},
+        {
+            "op": "alter_owner",
+            "kind": "materialized view",
+            "schema": "s",
+            "name": "mv",
+            "new_owner": "o",
+        },
+        {"op": "alter_owner", "kind": "schema", "name": "s", "new_owner": "o"},
+        {"op": "reassign_owned", "role": "a", "new_owner": "b"},
+        {"op": "cancel_backend", "pid": 42},
+        {"op": "terminate_backend", "pid": 43},
+        {"op": "analyze", "schema": "s", "name": "t"},
+        {"op": "vacuum", "schema": "s", "name": "t", "analyze": True},
+        {"op": "reset_statements"},
+    )
+    assert sqls(p) == [
+        'ALTER TABLE "s"."t" OWNER TO "o"',
+        'ALTER MATERIALIZED VIEW "s"."mv" OWNER TO "o"',
+        'ALTER SCHEMA "s" OWNER TO "o"',
+        'REASSIGN OWNED BY "a" TO "b"',
+        "SELECT pg_cancel_backend(42)",
+        "SELECT pg_terminate_backend(43)",
+        'ANALYZE "s"."t"',
+        'VACUUM (ANALYZE) "s"."t"',
+        "SELECT pg_stat_statements_reset()",
+    ]
+    assert not p.atomic
+    assert any("VACUUM cannot run inside a transaction" in w for w in p.warnings)
+    assert any("Terminating backend 43" in w for w in p.warnings)
+
+
+async def test_alter_owner_rejects_unknown_kind():
+    with pytest.raises(ValidationError):
+        ChangeSet(
+            operations=[{"op": "alter_owner", "kind": "index", "name": "i", "new_owner": "o"}]
+        )
+    with pytest.raises(ValidationError):
+        ChangeSet(operations=[{"op": "cancel_backend", "pid": 0}])
