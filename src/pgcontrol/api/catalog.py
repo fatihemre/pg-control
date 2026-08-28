@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 
 from pgcontrol.api.deps import Box, Pools, Profile, profile_params
-from pgcontrol.pg.catalog import grants, privileges, roles
+from pgcontrol.pg.catalog import config, grants, privileges, roles
 from pgcontrol.pg.catalog.common import server_version_num
 from pgcontrol.security.auth import CurrentUser
 
@@ -109,3 +109,42 @@ async def effective_privileges(
     if result is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Role {role!r} not found")
     return result.to_dict()
+
+
+@router.get("/settings")
+async def list_settings(profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools)
+    async with pool.connection() as conn:
+        return [asdict(s) for s in await config.list_settings(conn)]
+
+
+@router.get("/file-settings")
+async def list_file_settings(profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools)
+    async with pool.connection() as conn:
+        rows = await config.list_file_settings(conn)
+    return {"readable": rows is not None, "rows": [asdict(r) for r in rows or []]}
+
+
+@router.get("/hba")
+async def list_hba(profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools)
+    async with pool.connection() as conn:
+        version = await server_version_num(conn)
+        rows = await config.list_hba_rules(conn, version)
+    return {"readable": rows is not None, "rows": [asdict(r) for r in rows or []]}
+
+
+@router.get("/role-db-settings")
+async def list_role_db_settings(profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools)
+    async with pool.connection() as conn:
+        return [asdict(s) for s in await config.list_role_db_settings(conn)]
+
+
+@router.get("/databases/{dbname}/extensions")
+async def list_extensions(dbname: str, profile: Profile, box: Box, pools: Pools, _: CurrentUser):
+    pool = await _pool(profile, box, pools, dbname)
+    async with pool.connection() as conn:
+        version = await server_version_num(conn)
+        return [e.to_dict() for e in await config.list_extensions(conn, version)]

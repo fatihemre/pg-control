@@ -150,6 +150,45 @@ class AlterRoleConfigOp(_Model):
     database: str | None = None  # ALTER ROLE … IN DATABASE …
 
 
+class AlterSystemOp(_Model):
+    """ALTER SYSTEM SET/RESET — written to postgresql.auto.conf; cannot run in a transaction."""
+
+    op: Literal["alter_system"]
+    name: str
+    value: str | None = None  # None → RESET
+
+
+class ReloadConfOp(_Model):
+    op: Literal["reload_conf"]
+
+
+class AlterDatabaseConfigOp(_Model):
+    op: Literal["alter_database_config"]
+    database: str
+    name: str
+    value: str | None = None  # None → RESET
+
+
+class CreateExtensionOp(_Model):
+    op: Literal["create_extension"]
+    name: str
+    schema_name: str | None = Field(default=None, alias="schema")
+    version: str | None = None
+    cascade: bool = False
+
+
+class UpdateExtensionOp(_Model):
+    op: Literal["update_extension"]
+    name: str
+    version: str | None = None  # None → latest default version
+
+
+class DropExtensionOp(_Model):
+    op: Literal["drop_extension"]
+    name: str
+    cascade: bool = False
+
+
 class AlterDefaultOp(_Model):
     op: Literal["alter_default"]
     action: Literal["grant", "revoke"]
@@ -172,7 +211,13 @@ Change = Annotated[
     | CreateRoleOp
     | DropRoleOp
     | AlterRoleConfigOp
-    | AlterDefaultOp,
+    | AlterDefaultOp
+    | AlterSystemOp
+    | ReloadConfOp
+    | AlterDatabaseConfigOp
+    | CreateExtensionOp
+    | UpdateExtensionOp
+    | DropExtensionOp,
     Field(discriminator="op"),
 ]
 
@@ -187,6 +232,15 @@ class Statement:
     sql: sql.Composed
     preview: str
     description: str
+    transactional: bool = True
+
+
+def guc_name(name: str) -> sql.Composable:
+    """Quote a configuration parameter name, keeping dotted custom names (ext.param) valid."""
+    parts = [p.strip() for p in name.split(".")]
+    if not parts or any(not p for p in parts):
+        raise ValueError(f"invalid parameter name {name!r}")
+    return sql.SQL(".").join(sql.Identifier(p) for p in parts)
 
 
 class PlanError(ValueError):
@@ -300,10 +354,18 @@ class _Renderer:
             self.warnings.append("Granting SUPERUSER gives unrestricted access to the instance")
         return sql.SQL(" ").join(parts), sql.SQL(" ").join(preview)
 
-    def stmt(self, real: sql.Composable, description: str, preview: sql.Composable | None = None):
+    def stmt(
+        self,
+        real: sql.Composable,
+        description: str,
+        preview: sql.Composable | None = None,
+        transactional: bool = True,
+    ):
         real_c = real if isinstance(real, sql.Composed) else sql.Composed([real])
         text = (preview or real).as_string(self.conn)
-        return Statement(sql=real_c, preview=text, description=description)
+        return Statement(
+            sql=real_c, preview=text, description=description, transactional=transactional
+        )
 
     # -- operations ------------------------------------------------------------------------
     async def render(self, op: Change) -> list[Statement]:
@@ -326,6 +388,18 @@ class _Renderer:
                 return [self.alter_role_config(op)]
             case AlterDefaultOp():
                 return [self.alter_default(op)]
+            case AlterSystemOp():
+                return [self.alter_system(op)]
+            case ReloadConfOp():
+                return [self.stmt(sql.SQL("SELECT pg_reload_conf()"), "Reload configuration")]
+            case AlterDatabaseConfigOp():
+                return [self.alter_database_config(op)]
+            case CreateExtensionOp():
+                return [self.create_extension(op)]
+            case UpdateExtensionOp():
+                return [self.update_extension(op)]
+            case DropExtensionOp():
+                return [self.drop_extension(op)]
         raise ValueError(f"unsupported operation {op!r}")  # pragma: no cover
 
     async def grant(self, op: GrantOp) -> Statement:
@@ -443,10 +517,56 @@ class _Renderer:
         if op.database:
             head += sql.SQL(" IN DATABASE {}").format(sql.Identifier(op.database))
         if op.value is None:
-            q = head + sql.SQL(" RESET {}").format(sql.Identifier(op.name))
+            q = head + sql.SQL(" RESET {}").format(guc_name(op.name))
             return self.stmt(q, f"Reset {op.name} for {op.role}")
-        q = head + sql.SQL(" SET {} TO {}").format(sql.Identifier(op.name), sql.Literal(op.value))
+        q = head + sql.SQL(" SET {} TO {}").format(guc_name(op.name), sql.Literal(op.value))
         return self.stmt(q, f"Set {op.name} for {op.role}")
+
+    def alter_system(self, op: AlterSystemOp) -> Statement:
+        self.warnings.append(
+            "ALTER SYSTEM cannot run inside a transaction; this group is applied statement by "
+            "statement without rollback. Changes take effect after pg_reload_conf() "
+            "(or a restart for postmaster-context parameters)."
+        )
+        if op.value is None:
+            q = sql.SQL("ALTER SYSTEM RESET {}").format(guc_name(op.name))
+            return self.stmt(q, f"Reset {op.name} (postgresql.auto.conf)", transactional=False)
+        q = sql.SQL("ALTER SYSTEM SET {} TO {}").format(guc_name(op.name), sql.Literal(op.value))
+        return self.stmt(q, f"Set {op.name} = {op.value}", transactional=False)
+
+    def alter_database_config(self, op: AlterDatabaseConfigOp) -> Statement:
+        head = sql.SQL("ALTER DATABASE {}").format(sql.Identifier(op.database))
+        if op.value is None:
+            q = head + sql.SQL(" RESET {}").format(guc_name(op.name))
+            return self.stmt(q, f"Reset {op.name} for database {op.database}")
+        q = head + sql.SQL(" SET {} TO {}").format(guc_name(op.name), sql.Literal(op.value))
+        return self.stmt(q, f"Set {op.name} for database {op.database}")
+
+    def create_extension(self, op: CreateExtensionOp) -> Statement:
+        q = sql.SQL("CREATE EXTENSION IF NOT EXISTS {}").format(sql.Identifier(op.name))
+        if op.schema_name:
+            q += sql.SQL(" SCHEMA {}").format(sql.Identifier(op.schema_name))
+        if op.version:
+            q += sql.SQL(" VERSION {}").format(sql.Literal(op.version))
+        if op.cascade:
+            q += sql.SQL(" CASCADE")
+            self.warnings.append(f"CASCADE installs every extension {op.name} depends on")
+        return self.stmt(q, f"Install extension {op.name}")
+
+    def update_extension(self, op: UpdateExtensionOp) -> Statement:
+        q = sql.SQL("ALTER EXTENSION {} UPDATE").format(sql.Identifier(op.name))
+        if op.version:
+            q += sql.SQL(" TO {}").format(sql.Literal(op.version))
+        return self.stmt(
+            q, f"Update extension {op.name}" + (f" to {op.version}" if op.version else "")
+        )
+
+    def drop_extension(self, op: DropExtensionOp) -> Statement:
+        q = sql.SQL("DROP EXTENSION {}").format(sql.Identifier(op.name))
+        if op.cascade:
+            q += sql.SQL(" CASCADE")
+            self.warnings.append(f"DROP EXTENSION {op.name} CASCADE drops every dependent object")
+        return self.stmt(q, f"Drop extension {op.name}")
 
     def alter_default(self, op: AlterDefaultOp) -> Statement:
         q = sql.SQL("ALTER DEFAULT PRIVILEGES")
@@ -488,6 +608,10 @@ class Plan:
     warnings: list[str]
     server_version_num: int
 
+    @property
+    def atomic(self) -> bool:
+        return all(s.transactional for s in self.statements)
+
     def to_dict(self) -> dict:
         return {
             "statements": [
@@ -495,6 +619,7 @@ class Plan:
             ],
             "warnings": self.warnings,
             "server_version_num": self.server_version_num,
+            "atomic": self.atomic,
         }
 
 
@@ -519,22 +644,49 @@ class ApplyResult:
     failed_index: int | None = None
 
 
+def _error_text(e: Exception) -> str:
+    import psycopg
+
+    if isinstance(e, psycopg.Error):
+        msg = e.diag.message_primary
+        detail = e.diag.message_detail
+        if msg:
+            return f"{msg}. {detail}" if detail else msg
+    return str(e)
+
+
 async def apply_plan(conn: AsyncConnection, plan: Plan) -> ApplyResult:
-    """Execute all statements in one transaction; any failure rolls everything back."""
+    """Execute all statements in one transaction; any failure rolls everything back.
+
+    Plans containing non-transactional statements (ALTER SYSTEM) run statement by statement
+    on the autocommit connection and stop at the first failure without rollback.
+    """
     import psycopg
 
     executed = 0
+
+    async def run() -> ApplyResult | None:
+        nonlocal executed
+        for i, stmt in enumerate(plan.statements):
+            try:
+                await conn.execute(stmt.sql)
+            except psycopg.Error as e:
+                return ApplyResult(
+                    ok=False, executed=executed, error=_error_text(e), failed_index=i
+                )
+            executed += 1
+        return None
+
     try:
-        async with conn.transaction():
-            for i, stmt in enumerate(plan.statements):
-                try:
-                    await conn.execute(stmt.sql)
-                except psycopg.Error as e:
-                    msg = e.diag.message_primary if isinstance(e, psycopg.errors.Error) else str(e)
-                    detail = e.diag.message_detail if isinstance(e, psycopg.errors.Error) else None
-                    text = f"{msg}. {detail}" if detail else (msg or str(e))
-                    return ApplyResult(ok=False, executed=executed, error=text, failed_index=i)
-                executed += 1
+        if plan.atomic:
+            async with conn.transaction():
+                failure = await run()
+        else:
+            failure = await run()
     except psycopg.Error as e:  # pragma: no cover - commit failure
-        return ApplyResult(ok=False, executed=0, error=str(e))
+        return ApplyResult(ok=False, executed=0, error=_error_text(e))
+    if failure:
+        if plan.atomic:
+            failure.executed = 0
+        return failure
     return ApplyResult(ok=True, executed=executed)

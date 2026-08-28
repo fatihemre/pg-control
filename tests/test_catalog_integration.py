@@ -10,6 +10,7 @@ import pytest
 from psycopg.rows import dict_row
 
 from pgcontrol.pg.catalog import privileges, roles
+from pgcontrol.pg.catalog.common import server_version_num
 
 PORTS = {14: 7414, 15: 7415, 16: 7416, 17: 7417, 18: 7418}
 
@@ -191,3 +192,55 @@ async def test_apply_rolls_back_on_failure(conn):
     assert rooms.privileges[[p.name for p in rooms.privileges].index("TRIGGER")].sources
     undo = await build_plan(conn, ChangeSet(operations=[dict(good, op="revoke")]), version)
     assert (await apply_plan(conn, undo)).ok
+
+
+async def test_config_catalog(conn):
+    from pgcontrol.pg.catalog import config
+
+    version = await server_version_num(conn)
+    settings = {s.name: s for s in await config.list_settings(conn)}
+    assert settings["max_connections"].context == "postmaster"
+    assert settings["work_mem"].unit == "kB"
+    overrides = await config.list_role_db_settings(conn)
+    assert any(o.role == "reservation_api" and o.name == "search_path" for o in overrides)
+    hba = await config.list_hba_rules(conn, version)
+    assert hba and all(r.error is None for r in hba)
+    if version >= 160000:
+        assert hba[0].rule_number == 1
+    files = await config.list_file_settings(conn)
+    assert files is not None and any(f.name == "max_connections" for f in files)
+    exts = {e.name: e for e in await config.list_extensions(conn, version)}
+    assert exts["plpgsql"].installed_version == "1.0"
+    assert exts["pgcrypto"].installed_version is None and exts["pgcrypto"].versions
+
+
+async def test_alter_system_and_extension_apply(conn):
+    from pgcontrol.pg.catalog import config
+    from pgcontrol.pg.changes import ChangeSet, apply_plan, build_plan
+
+    version = await server_version_num(conn)
+    ops = [
+        {"op": "alter_system", "name": "work_mem", "value": "8MB"},
+        {"op": "reload_conf"},
+        {"op": "create_extension", "name": "pgcrypto", "schema": "public"},
+    ]
+    p = await build_plan(conn, ChangeSet(operations=ops), version)
+    assert not p.atomic
+    assert (await apply_plan(conn, p)).ok
+    exts = {e.name: e for e in await config.list_extensions(conn, version)}
+    assert exts["pgcrypto"].installed_version and exts["pgcrypto"].schema == "public"
+    row = await (
+        await conn.execute("SELECT * FROM pg_file_settings WHERE name = 'work_mem'")
+    ).fetchone()
+    assert row and row["setting"] == "8MB" and row["sourcefile"].endswith("postgresql.auto.conf")
+
+    undo = [
+        {"op": "alter_system", "name": "work_mem"},
+        {"op": "reload_conf"},
+        {"op": "drop_extension", "name": "pgcrypto"},
+    ]
+    assert (await apply_plan(conn, await build_plan(conn, ChangeSet(operations=undo), version))).ok
+    row = await (
+        await conn.execute("SELECT * FROM pg_file_settings WHERE name = 'work_mem'")
+    ).fetchone()
+    assert row is None

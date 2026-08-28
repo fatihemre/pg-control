@@ -143,3 +143,40 @@ def test_rejects_unknown_fields_and_empty_privileges():
         )
     with pytest.raises(ValidationError):
         ChangeSet(operations=[])
+
+
+async def test_config_and_extension_statements():
+    p = await plan(
+        160000,
+        {"op": "alter_system", "name": "pg_stat_statements.max", "value": "5000"},
+        {"op": "alter_system", "name": "work_mem"},
+        {"op": "reload_conf"},
+        {"op": "alter_database_config", "database": "app", "name": "search_path", "value": "a, b"},
+        {"op": "alter_database_config", "database": "app", "name": "search_path"},
+        {"op": "create_extension", "name": "pgcrypto", "schema": "ext", "version": "1.3"},
+        {"op": "update_extension", "name": "pgcrypto", "version": "1.4"},
+        {"op": "drop_extension", "name": "pgcrypto", "cascade": True},
+    )
+    assert sqls(p) == [
+        'ALTER SYSTEM SET "pg_stat_statements"."max" TO \'5000\'',
+        'ALTER SYSTEM RESET "work_mem"',
+        "SELECT pg_reload_conf()",
+        'ALTER DATABASE "app" SET "search_path" TO \'a, b\'',
+        'ALTER DATABASE "app" RESET "search_path"',
+        'CREATE EXTENSION IF NOT EXISTS "pgcrypto" SCHEMA "ext" VERSION \'1.3\'',
+        "ALTER EXTENSION \"pgcrypto\" UPDATE TO '1.4'",
+        'DROP EXTENSION "pgcrypto" CASCADE',
+    ]
+    assert not p.atomic and p.to_dict()["atomic"] is False
+    assert any("ALTER SYSTEM" in w for w in p.warnings)
+    assert any("CASCADE" in w for w in p.warnings)
+
+
+async def test_plan_without_alter_system_is_atomic():
+    p = await plan(140000, {"op": "reload_conf"})
+    assert p.atomic
+
+
+async def test_invalid_guc_name_rejected():
+    with pytest.raises(PlanError):
+        await plan(140000, {"op": "alter_system", "name": "a..b", "value": "1"})
