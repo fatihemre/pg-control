@@ -30,6 +30,7 @@ import { LoginPage } from './pages/Login'
 import { PlaceholderPage } from './pages/Placeholder'
 import { OverviewPage } from './pages/Overview'
 import { ReplicationPage } from './pages/Replication'
+import { UsersPage } from './pages/Users'
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -140,6 +141,7 @@ const tableStatsRoute = createRoute({ getParentRoute: () => appRoute, path: '/pe
 const dbStatsRoute = createRoute({ getParentRoute: () => appRoute, path: '/perf/databases', component: DatabaseStatsPage })
 const overviewRoute = createRoute({ getParentRoute: () => appRoute, path: '/cluster/overview', component: OverviewPage })
 const replicationRoute = createRoute({ getParentRoute: () => appRoute, path: '/cluster/replication', component: ReplicationPage })
+const usersRoute = createRoute({ getParentRoute: () => appRoute, path: '/admin/users', component: UsersPage })
 
 const placeholderRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -171,6 +173,7 @@ const routeTree = rootRoute.addChildren([
     dbStatsRoute,
     overviewRoute,
     replicationRoute,
+    usersRoute,
     placeholderRoute,
   ]),
 ])

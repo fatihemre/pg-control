@@ -39,6 +39,14 @@ rates, cache hit, database size, replication lag, XID age) and keeps the history
 metadata database. Tune with `PGCONTROL_METRICS_INTERVAL_SECONDS` (default 60, `0`
 disables) and `PGCONTROL_METRICS_RETENTION_HOURS` (default 72).
 
+## PgControl accounts
+
+Administration → Users lets an admin create local accounts, change roles (`viewer`,
+`operator`, `admin`), reset passwords and delete accounts; the last admin cannot be
+demoted or removed. Every user can change their own password from the sidebar. Single
+sign-on accounts have no local password and keep the role mapped from the identity
+provider.
+
 ## Single sign-on (OpenID Connect)
 
 Set `PGCONTROL_OIDC_ISSUER` and `PGCONTROL_OIDC_CLIENT_ID` (plus `_CLIENT_SECRET` for
