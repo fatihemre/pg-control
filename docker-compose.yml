@@ -1,0 +1,17 @@
+# PgControl — self-hosted PostgreSQL governance panel.
+# UI + API on http://localhost:7420
+services:
+  pgcontrol:
+    build: .
+    image: pgcontrol:latest
+    container_name: pgcontrol
+    ports: ["7420:7420"]
+    environment:
+      PGCONTROL_SECRET_KEY: ${PGCONTROL_SECRET_KEY:?set PGCONTROL_SECRET_KEY in .env (openssl rand -base64 32)}
+      PGCONTROL_ADMIN_PASSWORD: ${PGCONTROL_ADMIN_PASSWORD:-}
+    volumes:
+      - pgcontrol-data:/data
+    restart: unless-stopped
+
+volumes:
+  pgcontrol-data:

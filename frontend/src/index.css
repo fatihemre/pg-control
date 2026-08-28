@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-ink-950: #0b1220;
+  --color-ink-900: #111a2e;
+  --color-ink-800: #1a2540;
+  --color-ink-700: #263352;
+  --color-ink-500: #5b6b8a;
+  --color-ink-300: #aab5c9;
+  --color-ink-100: #e6eaf2;
+  --color-ink-50: #f5f7fb;
+  --color-accent-600: #0f766e;
+  --color-accent-500: #14b8a6;
+  --color-accent-100: #ccfbf1;
+}
+
+html, body, #root { height: 100%; }
+body { @apply bg-ink-50 text-ink-900 antialiased; }

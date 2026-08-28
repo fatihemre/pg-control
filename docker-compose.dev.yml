@@ -1,0 +1,40 @@
+# Development-only PostgreSQL instances (PG 14–18) on ports 7414–7418.
+# Usage: docker compose -f docker-compose.dev.yml up -d
+# Superuser: postgres / postgres. Seeded with the "reservations" sample (docker/dev-init).
+x-pg: &pg
+  environment:
+    POSTGRES_PASSWORD: postgres
+  volumes:
+    - ./docker/dev-init:/docker-entrypoint-initdb.d:ro
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U postgres"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+services:
+  pg14:
+    <<: *pg
+    image: postgres:14-alpine
+    container_name: pgcontrol-dev-pg14
+    ports: ["7414:5432"]
+  pg15:
+    <<: *pg
+    image: postgres:15-alpine
+    container_name: pgcontrol-dev-pg15
+    ports: ["7415:5432"]
+  pg16:
+    <<: *pg
+    image: postgres:16-alpine
+    container_name: pgcontrol-dev-pg16
+    ports: ["7416:5432"]
+  pg17:
+    <<: *pg
+    image: postgres:17-alpine
+    container_name: pgcontrol-dev-pg17
+    ports: ["7417:5432"]
+  pg18:
+    <<: *pg
+    image: postgres:18-alpine
+    container_name: pgcontrol-dev-pg18
+    ports: ["7418:5432"]
