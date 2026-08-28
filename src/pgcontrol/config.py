@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     session_ttl_hours: int = 12
     secure_cookies: bool = False
     log_level: str = "info"
+    metrics_interval_seconds: int = 60  # 0 disables the background sampler
+    metrics_retention_hours: int = 72
 
     @property
     def database_path(self) -> Path:

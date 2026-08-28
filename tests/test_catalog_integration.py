@@ -9,6 +9,7 @@ import psycopg
 import pytest
 from psycopg.rows import dict_row
 
+from pgcontrol.metrics import take_sample
 from pgcontrol.pg.catalog import privileges, roles
 from pgcontrol.pg.catalog.common import server_version_num
 
@@ -338,3 +339,10 @@ async def test_alter_owner_and_maintenance_apply(conn):
     owners = {(o.kind, o.name): o.owner for o in await ownership.list_owned_objects(conn)}
     assert owners[("table", "rooms")] == "reservation_owner"
     assert owners[("function", "room_count")] == "reservation_owner"
+
+
+async def test_metrics_sample(conn):
+    row = await take_sample(conn)
+    assert row["connections"] >= 1 and row["db_bytes"] > 0 and row["wal_bytes"] > 0
+    assert row["xact_commit"] >= 0 and row["oldest_xid_age"] > 0
+    assert row["lag_bytes"] is None or row["lag_bytes"] >= 0

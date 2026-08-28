@@ -1,6 +1,16 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -62,3 +72,30 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(64))
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class MetricSample(Base):
+    __tablename__ = "metric_samples"
+    __table_args__ = (Index("ix_metric_samples_profile_time", "profile_id", "taken_at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    profile_id: Mapped[int] = mapped_column(
+        ForeignKey("connection_profiles.id", ondelete="CASCADE")
+    )
+    taken_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    connections: Mapped[int] = mapped_column(Integer)
+    active: Mapped[int] = mapped_column(Integer)
+    idle_in_transaction: Mapped[int] = mapped_column(Integer)
+    waiting: Mapped[int] = mapped_column(Integer)
+    longest_xact_seconds: Mapped[float] = mapped_column(Float)
+    xact_commit: Mapped[int] = mapped_column(BigInteger)
+    xact_rollback: Mapped[int] = mapped_column(BigInteger)
+    blks_hit: Mapped[int] = mapped_column(BigInteger)
+    blks_read: Mapped[int] = mapped_column(BigInteger)
+    deadlocks: Mapped[int] = mapped_column(BigInteger)
+    temp_bytes: Mapped[int] = mapped_column(BigInteger)
+    db_bytes: Mapped[int] = mapped_column(BigInteger)
+    wal_bytes: Mapped[int] = mapped_column(BigInteger)
+    standby_count: Mapped[int] = mapped_column(Integer)
+    lag_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    oldest_xid_age: Mapped[int] = mapped_column(BigInteger)

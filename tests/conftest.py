@@ -13,6 +13,7 @@ def _env(tmp_path_factory: pytest.TempPathFactory) -> None:
     os.environ["PGCONTROL_ADMIN_PASSWORD"] = "admin-pass"
     os.environ["PGCONTROL_DATA_DIR"] = str(data_dir)
     os.environ["PGCONTROL_STATIC_DIR"] = str(data_dir / "no-static")
+    os.environ["PGCONTROL_METRICS_INTERVAL_SECONDS"] = "0"
 
 
 @pytest.fixture
