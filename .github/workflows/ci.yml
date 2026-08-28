@@ -17,7 +17,8 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_PASSWORD: postgres
-        ports: ["7416:5432"]
+        # Not 7414–7418: those ports mean "dev instance with sample data" to the test suite.
+        ports: ["7440:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s --health-timeout 3s --health-retries 10
@@ -33,7 +34,7 @@ jobs:
         run: uv run pytest
       - name: Tests (PostgreSQL metadata DB)
         env:
-          PGCONTROL_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:7416/pgcontrol_test
+          PGCONTROL_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:7440/pgcontrol_test
         run: uv run pytest
 
   integration:

@@ -22,3 +22,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Base images are bumped deliberately (Python / Node LTS), not by Dependabot.
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
