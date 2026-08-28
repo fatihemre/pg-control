@@ -12,7 +12,13 @@ import { ConnectionsPage } from './pages/Connections'
 import { EffectivePrivilegesPage, type EffectiveSearch } from './pages/EffectivePrivileges'
 import { RoleDetailPage } from './pages/RoleDetail'
 import { RolesPage } from './pages/Roles'
+import { ActivityPage } from './pages/Activity'
 import { AuditPage } from './pages/Audit'
+import { DatabaseStatsPage } from './pages/DatabaseStats'
+import { GrantsPage } from './pages/Grants'
+import { OwnershipPage } from './pages/Ownership'
+import { StatementsPage } from './pages/Statements'
+import { TableStatsPage } from './pages/TableStats'
 import { ClientAuthPage } from './pages/ClientAuth'
 import { ExtensionsPage } from './pages/Extensions'
 import { OverridesPage } from './pages/Overrides'
@@ -123,6 +129,13 @@ const overridesRoute = createRoute({ getParentRoute: () => appRoute, path: '/con
 const hbaRoute = createRoute({ getParentRoute: () => appRoute, path: '/config/hba', component: ClientAuthPage })
 const extensionsRoute = createRoute({ getParentRoute: () => appRoute, path: '/config/extensions', component: ExtensionsPage })
 
+const ownershipRoute = createRoute({ getParentRoute: () => appRoute, path: '/security/ownership', component: OwnershipPage })
+const grantsRoute = createRoute({ getParentRoute: () => appRoute, path: '/security/grants', component: GrantsPage })
+const activityRoute = createRoute({ getParentRoute: () => appRoute, path: '/perf/activity', component: ActivityPage })
+const statementsRoute = createRoute({ getParentRoute: () => appRoute, path: '/perf/statements', component: StatementsPage })
+const tableStatsRoute = createRoute({ getParentRoute: () => appRoute, path: '/perf/tables', component: TableStatsPage })
+const dbStatsRoute = createRoute({ getParentRoute: () => appRoute, path: '/perf/databases', component: DatabaseStatsPage })
+
 const placeholderRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '$',
@@ -145,6 +158,12 @@ const routeTree = rootRoute.addChildren([
     overridesRoute,
     hbaRoute,
     extensionsRoute,
+    ownershipRoute,
+    grantsRoute,
+    activityRoute,
+    statementsRoute,
+    tableStatsRoute,
+    dbStatsRoute,
     placeholderRoute,
   ]),
 ])

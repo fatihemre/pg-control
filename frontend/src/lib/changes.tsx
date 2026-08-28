@@ -36,6 +36,13 @@ export type Change =
   | { op: 'create_extension'; name: string; schema?: string; version?: string; cascade?: boolean }
   | { op: 'update_extension'; name: string; version?: string }
   | { op: 'drop_extension'; name: string; cascade?: boolean }
+  | { op: 'alter_owner'; kind: string; schema?: string; name: string; args?: string; new_owner: string }
+  | { op: 'reassign_owned'; role: string; new_owner: string }
+  | { op: 'cancel_backend'; pid: number }
+  | { op: 'terminate_backend'; pid: number }
+  | { op: 'vacuum'; schema: string; name: string; analyze?: boolean; full?: boolean }
+  | { op: 'analyze'; schema: string; name: string }
+  | { op: 'reset_statements' }
   | {
       op: 'alter_default'
       action: 'grant' | 'revoke'
@@ -113,6 +120,20 @@ export function describeChange(c: Change): string {
       return `ALTER EXTENSION ${c.name} UPDATE${c.version ? ` TO ${c.version}` : ''}`
     case 'drop_extension':
       return `DROP EXTENSION ${c.name}${c.cascade ? ' CASCADE' : ''}`
+    case 'alter_owner':
+      return `ALTER ${c.kind.toUpperCase()} ${c.schema ? `${c.schema}.` : ''}${c.name} OWNER TO ${c.new_owner}`
+    case 'reassign_owned':
+      return `REASSIGN OWNED BY ${c.role} TO ${c.new_owner}`
+    case 'cancel_backend':
+      return `Cancel query of backend ${c.pid}`
+    case 'terminate_backend':
+      return `Terminate backend ${c.pid}`
+    case 'vacuum':
+      return `VACUUM${c.full ? ' FULL' : ''}${c.analyze ? ' ANALYZE' : ''} ${c.schema}.${c.name}`
+    case 'analyze':
+      return `ANALYZE ${c.schema}.${c.name}`
+    case 'reset_statements':
+      return 'Reset pg_stat_statements'
     case 'alter_default':
       return `ALTER DEFAULT PRIVILEGES ${c.action.toUpperCase()} ${c.privileges.join(', ')} ON ${c.object_type.toUpperCase()} ${c.action === 'grant' ? 'TO' : 'FROM'} ${c.grantee}`
   }

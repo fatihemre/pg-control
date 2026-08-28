@@ -305,3 +305,197 @@ export const extensionsQuery = (profileId: number, db: string) =>
     queryKey: ['profile', profileId, 'db', db, 'extensions'],
     queryFn: () => api.get<Extension[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/extensions`),
   })
+
+export type FlatGrant = {
+  kind: string
+  schema: string | null
+  name: string
+  args: string | null
+  owner: string
+  acl_is_default: boolean
+  grantee: string
+  privilege: string
+  grantable: boolean
+  grantor: string
+}
+
+export const allGrantsQuery = (profileId: number, db: string) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'grants-all', db],
+    queryFn: () => api.get<FlatGrant[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/grants-all`),
+    staleTime: 15_000,
+  })
+
+export type OwnedObject = { kind: string; schema: string | null; name: string; args: string | null; owner: string }
+
+export const ownershipQuery = (profileId: number, db: string) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'ownership', db],
+    queryFn: () => api.get<OwnedObject[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/ownership`),
+    staleTime: 15_000,
+  })
+
+export type Session = {
+  pid: number
+  user: string | null
+  database: string | null
+  application_name: string | null
+  client_addr: string | null
+  backend_type: string | null
+  state: string | null
+  wait_event_type: string | null
+  wait_event: string | null
+  backend_start: string | null
+  xact_start: string | null
+  query_start: string | null
+  state_change: string | null
+  query_seconds: number | null
+  xact_seconds: number | null
+  blocked_by: number[]
+  query: string | null
+  is_self: boolean
+}
+
+export type BlockedLock = {
+  pid: number
+  user: string | null
+  database: string | null
+  locktype: string
+  mode: string
+  relation: string | null
+  waiting_seconds: number | null
+  blocked_by: number[]
+  query: string | null
+}
+
+export const activityQuery = (profileId: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'activity'],
+    queryFn: () => api.get<{ sessions: Session[]; blocked: BlockedLock[] }>(`/api/profiles/${profileId}/activity`),
+    staleTime: 0,
+  })
+
+export type StatementRow = {
+  queryid: string
+  user: string
+  database: string | null
+  toplevel: boolean
+  calls: number
+  rows: number
+  total_exec_time: number
+  mean_exec_time: number
+  min_exec_time: number
+  max_exec_time: number
+  stddev_exec_time: number
+  total_plan_time: number
+  shared_blks_hit: number
+  shared_blks_read: number
+  shared_blks_dirtied: number
+  shared_blks_written: number
+  temp_blks_read: number
+  temp_blks_written: number
+  wal_bytes: number
+  query: string
+}
+
+export type StatementsResult = { available: boolean; reason: string | null; rows: StatementRow[]; total_time: number }
+export type StatementOrder = 'total_time' | 'mean_time' | 'calls' | 'rows' | 'shared_read' | 'temp'
+
+export const statementsQuery = (profileId: number, db: string, order: StatementOrder, limit: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'statements', db, order, limit],
+    queryFn: () =>
+      api.get<StatementsResult>(
+        `/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/statements?order=${order}&limit=${limit}`,
+      ),
+    staleTime: 10_000,
+  })
+
+export type TableStats = {
+  schema: string
+  name: string
+  kind: string
+  n_live_tup: number
+  n_dead_tup: number
+  dead_ratio: number | null
+  seq_scan: number
+  seq_tup_read: number
+  idx_scan: number | null
+  n_tup_ins: number
+  n_tup_upd: number
+  n_tup_del: number
+  n_tup_hot_upd: number
+  last_vacuum: string | null
+  last_autovacuum: string | null
+  last_analyze: string | null
+  last_autoanalyze: string | null
+  vacuum_count: number
+  autovacuum_count: number
+  total_bytes: number
+  table_bytes: number
+  index_bytes: number
+  toast_bytes: number
+  heap_blks_hit: number
+  heap_blks_read: number
+  cache_hit_ratio: number | null
+}
+
+export type IndexStats = {
+  schema: string
+  table: string
+  name: string
+  idx_scan: number
+  idx_tup_read: number
+  idx_tup_fetch: number
+  size_bytes: number
+  is_unique: boolean
+  is_primary: boolean
+  is_valid: boolean
+  definition: string
+}
+
+const withSchema = (schema?: string) => (schema ? `?schema=${encodeURIComponent(schema)}` : '')
+
+export const tableStatsQuery = (profileId: number, db: string, schema?: string) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'table-stats', db, schema ?? ''],
+    queryFn: () =>
+      api.get<TableStats[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/table-stats${withSchema(schema)}`),
+    staleTime: 10_000,
+  })
+
+export const indexStatsQuery = (profileId: number, db: string, schema?: string) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'index-stats', db, schema ?? ''],
+    queryFn: () =>
+      api.get<IndexStats[]>(`/api/profiles/${profileId}/databases/${encodeURIComponent(db)}/index-stats${withSchema(schema)}`),
+    staleTime: 10_000,
+  })
+
+export type DatabaseStats = {
+  name: string
+  size_bytes: number
+  numbackends: number
+  xact_commit: number
+  xact_rollback: number
+  blks_hit: number
+  blks_read: number
+  cache_hit_ratio: number | null
+  tup_returned: number
+  tup_fetched: number
+  tup_inserted: number
+  tup_updated: number
+  tup_deleted: number
+  conflicts: number
+  temp_files: number
+  temp_bytes: number
+  deadlocks: number
+  stats_reset: string | null
+}
+
+export const dbStatsQuery = (profileId: number) =>
+  queryOptions({
+    queryKey: ['profile', profileId, 'db-stats'],
+    queryFn: () => api.get<DatabaseStats[]>(`/api/profiles/${profileId}/db-stats`),
+    staleTime: 10_000,
+  })

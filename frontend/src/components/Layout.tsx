@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
-import { Database, KeyRound, LogOut, Settings2, ShieldCheck, Users } from 'lucide-react'
+import { Database, Gauge, KeyRound, LogOut, Settings2, ShieldCheck, Users } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { useLogout, useMe } from '../lib/auth'
 import { InstanceProvider } from '../lib/instance'
@@ -52,9 +52,19 @@ const NAV: NavSection[] = [
     icon: ShieldCheck,
     items: [
       { label: 'Effective privileges', to: '/security/effective', ready: true },
-      { label: 'Ownership', to: '/security/ownership' },
-      { label: 'Grants', to: '/security/grants' },
+      { label: 'Ownership', to: '/security/ownership', ready: true },
+      { label: 'Grants', to: '/security/grants', ready: true },
       { label: 'Audit log', to: '/security/audit', ready: true },
+    ],
+  },
+  {
+    label: 'Performance',
+    icon: Gauge,
+    items: [
+      { label: 'Activity', to: '/perf/activity', ready: true },
+      { label: 'Statements', to: '/perf/statements', ready: true },
+      { label: 'Tables & indexes', to: '/perf/tables', ready: true },
+      { label: 'Databases', to: '/perf/databases', ready: true },
     ],
   },
 ]
