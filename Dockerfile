@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---- backend ----
-FROM python:3.13-slim AS backend
+FROM python:3.14-slim AS backend
 ENV PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
