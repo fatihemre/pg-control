@@ -6,6 +6,14 @@ All notable changes to PgControl are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- License changed from MIT to GNU AGPL-3.0-or-later. Nothing changes for people who run
+  PgControl, modified or not, for themselves; distributing a modified version or offering
+  one to others over a network now requires sharing the modifications under the same
+  license. Version 0.1.0 remains available under the MIT license. Contributions require a
+  DCO sign-off (see `CONTRIBUTING.md`).
+
 ## [0.1.0] - 2026-08-29
 
 First public release.

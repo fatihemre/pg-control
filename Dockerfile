@@ -20,6 +20,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY README.md LICENSE ./
+LABEL org.opencontainers.image.licenses="AGPL-3.0-or-later"
 COPY src ./src
 COPY alembic ./alembic
 RUN uv sync --frozen --no-dev

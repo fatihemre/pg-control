@@ -50,6 +50,8 @@ applies it at startup. Migrations must work on both SQLite and PostgreSQL.
 
 - One topic per PR; keep refactors separate from behaviour changes.
 - Short English commit messages in the imperative ("Add sequence privileges page").
+- Sign off your commits (`git commit -s`) to certify the
+  [Developer Certificate of Origin](https://developercertificate.org/).
 - Add or update tests. UI changes: attach a screenshot.
 - Fill in the PR template; CI must be green.
 
@@ -64,5 +66,10 @@ This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
 
 ## License
 
-By contributing you agree that your contributions are licensed under the
-[MIT License](LICENSE).
+PgControl is licensed under the [GNU AGPL v3.0 or later](LICENSE). By contributing you
+agree that your contributions are licensed under the same license, and you certify the
+[Developer Certificate of Origin](https://developercertificate.org/) with the
+`Signed-off-by` line on your commits. You keep the copyright of your contribution; you
+also grant the maintainer the right to distribute it under additional licenses in the
+future (for example a commercial license alongside the AGPL). If that is not acceptable
+to you, please say so before opening the pull request.

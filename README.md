@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/fatihemre/pg-control/actions/workflows/ci.yml/badge.svg)](https://github.com/fatihemre/pg-control/actions/workflows/ci.yml)
 [![Docker Hub](https://img.shields.io/docker/v/fatihemre/pgcontrol?label=docker&sort=semver)](https://hub.docker.com/r/fatihemre/pgcontrol)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/fatihemre/pg-control/blob/main/LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/fatihemre/pg-control/blob/main/LICENSE)
 ![PostgreSQL 14–18](https://img.shields.io/badge/PostgreSQL-14%20%E2%80%93%2018-336791?logo=postgresql&logoColor=white)
 
 Self-hosted governance panel for PostgreSQL. Not a query tool — PgControl answers
@@ -213,4 +213,8 @@ docker/dev-patroni/ image and config for the dev Patroni cluster
 
 ## License
 
-[MIT](https://github.com/fatihemre/pg-control/blob/main/LICENSE) © 2026 Fatih Emre
+PgControl is free software, licensed under the
+[GNU Affero General Public License v3.0 or later](https://github.com/fatihemre/pg-control/blob/main/LICENSE).
+Running it, modifying it and redistributing it are all allowed; if you distribute a
+modified version, or offer a modified version to others over a network, you have to
+make your changes available under the same license. Copyright © 2026 Fatih Emre.

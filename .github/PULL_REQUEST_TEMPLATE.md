@@ -13,3 +13,4 @@
 - [ ] Catalog queries were checked on PostgreSQL 14 through 18 (if they changed)
 - [ ] Writes to managed instances go through Plan → SQL preview → Apply and are audited
 - [ ] Docs / `CHANGELOG.md` updated where it matters
+- [ ] Commits are signed off (`git commit -s`) and I agree to the licensing terms in `CONTRIBUTING.md`

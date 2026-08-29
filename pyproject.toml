@@ -3,7 +3,7 @@ name = "pgcontrol"
 version = "0.1.0"
 description = "Self-hosted PostgreSQL governance panel: users, roles, effective privileges, configuration, cluster"
 readme = "README.md"
-license = "MIT"
+license = "AGPL-3.0-or-later"
 license-files = ["LICENSE"]
 authors = [{ name = "Fatih Emre" }]
 requires-python = ">=3.13"
