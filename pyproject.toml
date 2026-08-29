@@ -5,7 +5,7 @@ description = "Self-hosted PostgreSQL governance panel: users, roles, effective 
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{ name = "Fatih Emre", email = "fatihemreoner@gmail.com" }]
+authors = [{ name = "Fatih Emre" }]
 requires-python = ">=3.13"
 keywords = ["postgresql", "postgres", "privileges", "roles", "grants", "patroni", "admin", "governance"]
 classifiers = [
