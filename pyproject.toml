@@ -1,6 +1,6 @@
 [project]
 name = "pgcontrol"
-version = "0.1.0"
+version = "0.2.0"
 description = "Self-hosted PostgreSQL governance panel: users, roles, effective privileges, configuration, cluster"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
