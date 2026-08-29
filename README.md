@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/fatihemre/pg-control/actions/workflows/ci.yml/badge.svg)](https://github.com/fatihemre/pg-control/actions/workflows/ci.yml)
 [![Docker Hub](https://img.shields.io/docker/v/fatihemre/pgcontrol?label=docker&sort=semver)](https://hub.docker.com/r/fatihemre/pgcontrol)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/fatihemre/pg-control/blob/main/LICENSE)
 ![PostgreSQL 14–18](https://img.shields.io/badge/PostgreSQL-14%20%E2%80%93%2018-336791?logo=postgresql&logoColor=white)
 
 Self-hosted governance panel for PostgreSQL. Not a query tool — PgControl answers
@@ -26,11 +26,11 @@ Supports PostgreSQL **14 through 18**.
 
 | Effective privileges | Table privileges |
 |---|---|
-| ![Effective privileges](docs/screenshots/effective-privileges.png) | ![Table privileges](docs/screenshots/permissions.png) |
+| ![Effective privileges](https://raw.githubusercontent.com/fatihemre/pg-control/main/docs/screenshots/effective-privileges.png) | ![Table privileges](https://raw.githubusercontent.com/fatihemre/pg-control/main/docs/screenshots/permissions.png) |
 
 | Cluster overview | Patroni |
 |---|---|
-| ![Cluster overview](docs/screenshots/overview.png) | ![Patroni](docs/screenshots/patroni.png) |
+| ![Cluster overview](https://raw.githubusercontent.com/fatihemre/pg-control/main/docs/screenshots/overview.png) | ![Patroni](https://raw.githubusercontent.com/fatihemre/pg-control/main/docs/screenshots/patroni.png) |
 
 ## Quick start
 
@@ -59,7 +59,7 @@ GHCR (`ghcr.io/fatihemre/pg-control`) for `linux/amd64` and `linux/arm64`.
 Keep `PGCONTROL_SECRET_KEY` safe: stored PostgreSQL passwords are encrypted with a key
 derived from it, and the `/data` volume holds PgControl's own metadata (accounts,
 connection profiles, audit log). All settings are listed in
-[docs/configuration.md](docs/configuration.md).
+[docs/configuration.md](https://github.com/fatihemre/pg-control/blob/main/docs/configuration.md).
 
 ## Ports
 
@@ -187,7 +187,7 @@ Connect PgControl to a dev instance with host `127.0.0.1`, port `7416` (PG 16), 
 The Patroni cluster (`patroni1`, `patroni2`, etcd) exposes PostgreSQL on `7433`/`7434` and
 its REST API on `http://127.0.0.1:7431` / `7432`, REST credentials `patroni` / `patroni`.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the project rules (PG 14–18 compatibility,
+See [CONTRIBUTING.md](https://github.com/fatihemre/pg-control/blob/main/CONTRIBUTING.md) for the project rules (PG 14–18 compatibility,
 identifier quoting, Plan → Apply for writes) and the pull request checklist.
 
 ## Layout
@@ -208,9 +208,9 @@ docker/dev-patroni/ image and config for the dev Patroni cluster
 
 - Bugs and feature requests: [GitHub issues](https://github.com/fatihemre/pg-control/issues)
 - Questions and ideas: [GitHub Discussions](https://github.com/fatihemre/pg-control/discussions)
-- Security issues: see [SECURITY.md](SECURITY.md) — please report privately
-- Release notes: [CHANGELOG.md](CHANGELOG.md)
+- Security issues: see [SECURITY.md](https://github.com/fatihemre/pg-control/blob/main/SECURITY.md) — please report privately
+- Release notes: [CHANGELOG.md](https://github.com/fatihemre/pg-control/blob/main/CHANGELOG.md)
 
 ## License
 
-[MIT](LICENSE) © 2026 Fatih Emre
+[MIT](https://github.com/fatihemre/pg-control/blob/main/LICENSE) © 2026 Fatih Emre
