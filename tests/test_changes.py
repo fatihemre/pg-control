@@ -70,8 +70,11 @@ async def test_membership_options_by_version():
         "admin_option": True,
         "inherit_option": False,
     }
-    assert sqls(await plan(150000, op)) == ['GRANT "a" TO "b" WITH ADMIN OPTION']
     assert sqls(await plan(160000, op)) == ['GRANT "a" TO "b" WITH ADMIN TRUE, INHERIT FALSE']
+    with pytest.raises(PlanError):  # not silently dropped before PG16
+        await plan(150000, op)
+    del op["inherit_option"]
+    assert sqls(await plan(150000, op)) == ['GRANT "a" TO "b" WITH ADMIN OPTION']
     with pytest.raises(PlanError):
         await plan(150000, {"op": "revoke_role", "role": "a", "member": "b", "option_only": "set"})
 

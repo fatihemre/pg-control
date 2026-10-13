@@ -555,9 +555,12 @@ class _Renderer:
                     opts.append(sql.SQL(f"{kw} {'TRUE' if v else 'FALSE'}"))
             if opts:
                 q += sql.SQL(" WITH ") + sql.SQL(", ").join(opts)
-        elif op.admin_option:
-            q += sql.SQL(" WITH ADMIN OPTION")
-        if op.role.startswith("pg_") or op.role == "pg_signal_backend":
+        else:
+            if op.inherit_option is not None or op.set_option is not None:
+                raise ValueError("INHERIT and SET options require PostgreSQL 16 or newer")
+            if op.admin_option:
+                q += sql.SQL(" WITH ADMIN OPTION")
+        if op.role.startswith("pg_"):
             self.warnings.append(f"{op.role} is a predefined role with elevated capabilities")
         return self.stmt(q, f"Add {op.member} to role {op.role}")
 
