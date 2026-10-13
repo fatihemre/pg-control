@@ -15,7 +15,7 @@ ENV PYTHONUNBUFFERED=1 \
     PGCONTROL_PORT=7420 \
     PGCONTROL_DATA_DIR=/data \
     PGCONTROL_STATIC_DIR=/app/static
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /usr/local/bin/uv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
@@ -29,5 +29,5 @@ RUN useradd --system --uid 1000 --home /data pgcontrol && mkdir -p /data && chow
 USER pgcontrol
 VOLUME ["/data"]
 EXPOSE 7420
-HEALTHCHECK --interval=30s --timeout=5s CMD ["python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:7420/api/health')"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD ["python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:7420/api/health')"]
 CMD ["/app/.venv/bin/pgcontrol", "serve"]
