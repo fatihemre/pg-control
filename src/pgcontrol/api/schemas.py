@@ -67,6 +67,8 @@ class ProfileOut(ProfileBase):
 
 class ProfileTestRequest(ProfileBase):
     password: str | None = None
+    # When editing a saved profile: use its stored password if ``password`` is None.
+    profile_id: int | None = None
 
 
 class ServerInfoOut(BaseModel):

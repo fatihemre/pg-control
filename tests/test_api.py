@@ -1,3 +1,4 @@
+import socket
 import tomllib
 from pathlib import Path
 
@@ -85,3 +86,25 @@ async def test_profile_test_unreachable(admin: AsyncClient):
     )
     assert r.status_code == 502
     assert "detail" in r.json()
+
+
+async def test_profile_test_uses_form_values_with_stored_password(admin: AsyncClient):
+    body = {"name": "stored", "host": "127.0.0.1", "port": 7416, "username": "postgres"}
+    r = await admin.post("/api/profiles", json={**body, "password": "postgres"})
+    pid = r.json()["id"]
+    # The edited (unreachable) port must be tested, not the saved one.
+    r = await admin.post(
+        "/api/profiles/test", json={**body, "port": 1, "connect_timeout": 2, "profile_id": pid}
+    )
+    assert r.status_code == 502
+    r = await admin.post("/api/profiles/test", json={**body, "profile_id": pid + 1000})
+    assert r.status_code == 404
+    if _port_open(7416):
+        r = await admin.post("/api/profiles/test", json={**body, "profile_id": pid})
+        assert r.status_code == 200, r.text
+
+
+def _port_open(port: int) -> bool:
+    with socket.socket() as s:
+        s.settimeout(0.5)
+        return s.connect_ex(("127.0.0.1", port)) == 0

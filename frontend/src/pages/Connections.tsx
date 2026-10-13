@@ -187,10 +187,14 @@ function ProfileForm({ initial, onClose, onSaved }: { initial: Profile | null; o
   })
 
   const test = useMutation({
+    // Always test what is in the form; a kept password is filled in from the saved profile.
     mutationFn: () =>
-      initial && keepPassword
-        ? api.post<ServerInfo>(`/api/profiles/${initial.id}/test`)
-        : api.post<ServerInfo>('/api/profiles/test', { ...form, sslrootcert: form.sslrootcert || null }),
+      api.post<ServerInfo>('/api/profiles/test', {
+        ...form,
+        sslrootcert: form.sslrootcert || null,
+        password: initial && keepPassword ? null : form.password || null,
+        profile_id: initial?.id ?? null,
+      }),
     onSuccess: setTestResult,
     onError: setTestResult,
   })

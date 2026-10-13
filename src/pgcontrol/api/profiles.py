@@ -101,13 +101,19 @@ async def delete_profile(profile: Profile, db: DB, pools: Pools, _: AdminUser):
 
 
 @router.post("/test", response_model=ServerInfoOut)
-async def test_unsaved(body: ProfileTestRequest, _: AdminUser):
+async def test_unsaved(body: ProfileTestRequest, db: DB, box: Box, _: AdminUser):
+    password = body.password or None
+    if body.password is None and body.profile_id is not None:
+        saved = await db.get(ConnectionProfile, body.profile_id)
+        if saved is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Profile not found")
+        password = box.decrypt(saved.password_enc) if saved.password_enc else None
     params = ConnParams(
         host=body.host,
         port=body.port,
         database=body.database,
         username=body.username,
-        password=body.password or None,
+        password=password,
         sslmode=body.sslmode,
         sslrootcert=body.sslrootcert,
         connect_timeout=body.connect_timeout,
