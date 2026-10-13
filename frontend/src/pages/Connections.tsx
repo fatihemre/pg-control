@@ -38,7 +38,10 @@ export function ConnectionsPage() {
   })
   const remove = useMutation({
     mutationFn: (id: number) => api.delete<void>(`/api/profiles/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['profiles'] }),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ['profiles'] })
+      qc.removeQueries({ queryKey: ['profile', id] })
+    },
   })
 
   return (
@@ -54,6 +57,11 @@ export function ConnectionsPage() {
         }
       />
 
+      {remove.isError && (
+        <div className="mb-4">
+          <Alert tone="error">Could not delete the instance: {remove.error.message}</Alert>
+        </div>
+      )}
       {profiles.isLoading && <p className="text-sm text-ink-500">Loading…</p>}
       {profiles.data?.length === 0 && (
         <div className="rounded-lg border border-dashed border-ink-300 p-10 text-center text-sm text-ink-500">
@@ -115,6 +123,8 @@ export function ConnectionsPage() {
           initial={editing === 'new' ? null : editing}
           onClose={() => setEditing(null)}
           onSaved={() => {
+            // new settings can point at another server: refetch everything cached for it
+            if (editing !== 'new') qc.invalidateQueries({ queryKey: ['profile', editing.id] })
             setEditing(null)
             qc.invalidateQueries({ queryKey: ['profiles'] })
           }}
