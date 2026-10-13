@@ -133,8 +133,10 @@ function RoleForm({ role, onClose }: { role?: RoleSummary; onClose: () => void }
       const v = flags[f.key]
       if (!role || flag(role, f.key) !== v) attrs[f.key] = v
     }
-    const limit = Number(connlimit)
-    if (!Number.isNaN(limit) && (!role || role.connlimit !== limit) && (role || limit !== -1)) attrs.connlimit = limit
+    // An empty field means "leave as is"; Number('') would be 0 and lock the role out.
+    const limit = connlimit.trim() === '' ? null : Number(connlimit)
+    if (limit !== null && Number.isInteger(limit) && (!role || role.connlimit !== limit) && (role || limit !== -1))
+      attrs.connlimit = limit
     const original = role?.valid_until ? role.valid_until.slice(0, 19) : ''
     if (validUntil !== original) attrs.valid_until = validUntil
     if (clearPassword) attrs.password = ''
@@ -168,7 +170,7 @@ function RoleForm({ role, onClose }: { role?: RoleSummary; onClose: () => void }
         </div>
         {flags.superuser && <Alert tone="error">SUPERUSER bypasses every permission check.</Alert>}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Connection limit" hint="-1 = unlimited">
+          <Field label="Connection limit" hint="-1 = unlimited, empty = unchanged">
             <Input type="number" min={-1} value={connlimit} onChange={(e) => setConnlimit(e.target.value)} />
           </Field>
           <Field label="Valid until" hint="Empty = never expires">
