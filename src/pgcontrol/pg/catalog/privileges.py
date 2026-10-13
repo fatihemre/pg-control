@@ -131,6 +131,22 @@ class _Ctx:
                 self.via[e.oid] = e.path[1:]
         self.oids = list(self.via.keys())
 
+    def add_database_owner(self, datdba: int) -> ClosureEntry | None:
+        """The database owner is an implicit member of pg_database_owner (PG14+)."""
+        owner_oid = next((o for o, n in self.names.items() if n == "pg_database_owner"), None)
+        if owner_oid is None or datdba not in self.via or owner_oid in self.via:
+            return None
+        hops = [*self.via[datdba], "pg_database_owner"]
+        self.via[owner_oid] = hops
+        self.oids = list(self.via.keys())
+        return ClosureEntry(
+            oid=owner_oid,
+            name="pg_database_owner",
+            depth=len(hops),
+            path=[self.role.name, *hops],
+            inherited=True,
+        )
+
     def name(self, oid: int) -> str:
         if oid == PUBLIC_OID:
             return PUBLIC_NAME
@@ -229,6 +245,9 @@ async def effective_privileges(
             base,
         )
     )[0]
+    if (implicit := ctx.add_database_owner(db_row["datdba"])) is not None:
+        closure.append(implicit)
+        base["oids"] = ctx.oids
     db_acl = await _fetch(
         conn,
         """

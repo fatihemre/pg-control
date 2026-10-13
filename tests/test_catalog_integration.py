@@ -143,6 +143,40 @@ async def test_effective_noinherit(conn):
     assert "No CONNECT on database reservations" in res.blockers
 
 
+async def test_effective_database_owner_via_pg_database_owner(conn):
+    port = conn.info.port
+    await conn.execute("DROP DATABASE IF EXISTS pgc_owner_test")
+    await conn.execute("DROP ROLE IF EXISTS pgc_dbo")
+    await conn.execute("CREATE ROLE pgc_dbo LOGIN")
+    await conn.execute("CREATE DATABASE pgc_owner_test OWNER pgc_dbo")
+    try:
+        async with await psycopg.AsyncConnection.connect(
+            host="127.0.0.1",
+            port=port,
+            dbname="pgc_owner_test",
+            user="postgres",
+            password="postgres",
+            row_factory=dict_row,
+            autocommit=True,
+        ) as c2:
+            # make public CREATE depend on ownership alone (PG14 still grants it to PUBLIC)
+            await c2.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
+            r = await privileges.effective_privileges(c2, "pgc_dbo", schema="public")
+            assert r.database_privileges.is_owner
+            assert [e.path for e in r.membership] == [["pgc_dbo", "pg_database_owner"]]
+            public = r.schemas[0]
+            if await server_version_num(c2) >= 150000:  # public is owned by pg_database_owner
+                assert public.owner == "pg_database_owner" and public.is_owner
+                create = next(p for p in public.privileges if p.name == "CREATE")
+                assert create.granted
+                assert [(s.kind, s.via) for s in create.sources] == [
+                    ("owner", ["pg_database_owner"])
+                ]
+    finally:
+        await conn.execute("DROP DATABASE IF EXISTS pgc_owner_test")
+        await conn.execute("DROP ROLE IF EXISTS pgc_dbo")
+
+
 async def test_effective_owner_chain(conn):
     r = await privileges.effective_privileges(conn, "reservation_admin", schema="sch_billing")
     inv = find(r, "sch_billing", "invoices")
