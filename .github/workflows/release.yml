@@ -3,20 +3,22 @@ name: Release image
 # Builds the multi-arch image and pushes it to Docker Hub and GHCR when a version tag
 # (v1.2.3) is pushed. Requires the repository secrets DOCKERHUB_USERNAME and
 # DOCKERHUB_TOKEN; the Docker Hub repository name can be overridden with the
-# repository variable DOCKERHUB_IMAGE (default: fatihemre/pgcontrol).
+# repository variable DOCKERHUB_IMAGE (default: fatihemre/pgcontrol). A manual run
+# pushes a sha-<commit> image only; "latest" moves on stable version tags alone.
 
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
 
-permissions:
-  contents: write
-  packages: write
+permissions: {}
 
 jobs:
   image:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-qemu-action@v4
@@ -38,11 +40,13 @@ jobs:
           images: |
             ${{ vars.DOCKERHUB_IMAGE || 'fatihemre/pgcontrol' }}
             ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=false
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=sha,enable=${{ github.ref_type != 'tag' }}
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' && !contains(github.ref_name, '-') }}
           labels: |
             org.opencontainers.image.licenses=AGPL-3.0-or-later
       - uses: docker/build-push-action@v7
