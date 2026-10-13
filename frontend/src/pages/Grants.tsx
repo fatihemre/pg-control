@@ -120,7 +120,7 @@ export function GrantsPage() {
                   {g.grantee === 'PUBLIC' ? (
                     <Badge tone="warn">PUBLIC</Badge>
                   ) : (
-                    <Link to="/roles/$name" params={{ name: g.grantee }} className="text-accent-700 hover:underline">
+                    <Link to="/role/$name" params={{ name: g.grantee }} className="text-accent-700 hover:underline">
                       {g.grantee}
                     </Link>
                   )}

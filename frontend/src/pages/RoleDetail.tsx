@@ -38,7 +38,7 @@ function MembershipTable({ rows, column }: { rows: Membership[]; column: string 
         {rows.map((m) => (
           <tr key={`${m.role}/${m.grantor ?? ""}`} className="border-t border-ink-100">
             <td className="py-1 pr-3 font-mono">
-              <Link to="/roles/$name" params={{ name: m.role }} className="text-accent-700 hover:underline">
+              <Link to="/role/$name" params={{ name: m.role }} className="text-accent-700 hover:underline">
                 {m.role}
               </Link>
             </td>
@@ -66,7 +66,7 @@ export function Chain({ path }: { path: string[] }) {
         <span key={i}>
           {i > 0 && <span className="text-ink-400"> → </span>}
           {i === path.length - 1 ? (
-            <Link to="/roles/$name" params={{ name: p }} className="text-accent-700 hover:underline">
+            <Link to="/role/$name" params={{ name: p }} className="text-accent-700 hover:underline">
               {p}
             </Link>
           ) : (
@@ -93,7 +93,7 @@ function ClosureList({ rows, empty }: { rows: ClosureEntry[]; empty: string }) {
 }
 
 export function RoleDetailPage() {
-  const { name } = useParams({ from: '/app/roles/$name' })
+  const { name } = useParams({ from: '/app/role/$name' })
   const { current } = useInstance()
   const query = useQuery({ ...roleQuery(current?.id ?? 0, name), enabled: !!current })
 

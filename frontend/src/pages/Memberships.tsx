@@ -60,12 +60,12 @@ export function MembershipsPage() {
           {rows.map((m) => (
             <tr key={`${m.role}/${m.member}/${m.grantor ?? ""}`} className="hover:bg-ink-50">
               <td className="px-3 py-2 font-mono">
-                <Link to="/roles/$name" params={{ name: m.role }} className="text-accent-700 hover:underline">
+                <Link to="/role/$name" params={{ name: m.role }} className="text-accent-700 hover:underline">
                   {m.role}
                 </Link>
               </td>
               <td className="px-3 py-2 font-mono">
-                <Link to="/roles/$name" params={{ name: m.member }} className="text-accent-700 hover:underline">
+                <Link to="/role/$name" params={{ name: m.member }} className="text-accent-700 hover:underline">
                   {m.member}
                 </Link>
               </td>

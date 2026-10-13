@@ -22,7 +22,7 @@ import { MembershipsPage } from './pages/Memberships'
 import { PermissionsPage } from './pages/Permissions'
 import { RoleAttributesPage } from './pages/RoleAttributes'
 import { LoginPage } from './pages/Login'
-import { PlaceholderPage } from './pages/Placeholder'
+import { NotFoundPage } from './pages/NotFound'
 import { OverviewPage } from './pages/Overview'
 import { ReplicationPage } from './pages/Replication'
 import { UsersPage } from './pages/Users'
@@ -92,7 +92,7 @@ const rolesRoute = createRoute({
 
 const roleDetailRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: '/roles/$name',
+  path: '/role/$name',
   component: RoleDetailPage,
 })
 
@@ -152,10 +152,10 @@ const replicationRoute = createRoute({ getParentRoute: () => appRoute, path: '/c
 const usersRoute = createRoute({ getParentRoute: () => appRoute, path: '/admin/users', component: UsersPage })
 const patroniRoute = createRoute({ getParentRoute: () => appRoute, path: '/cluster/patroni', component: PatroniPage })
 
-const placeholderRoute = createRoute({
+const notFoundRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '$',
-  component: PlaceholderPage,
+  component: NotFoundPage,
 })
 
 const routeTree = rootRoute.addChildren([
@@ -184,7 +184,7 @@ const routeTree = rootRoute.addChildren([
     replicationRoute,
     patroniRoute,
     usersRoute,
-    placeholderRoute,
+    notFoundRoute,
   ]),
 ])
 

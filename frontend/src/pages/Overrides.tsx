@@ -53,7 +53,7 @@ export function OverridesPage() {
             <tr key={`${o.role}/${o.database}/${o.name}`} className="hover:bg-ink-50">
               <td className="px-3 py-2 font-mono">
                 {o.role ? (
-                  <Link to="/roles/$name" params={{ name: o.role }} className="text-accent-700 hover:underline">
+                  <Link to="/role/$name" params={{ name: o.role }} className="text-accent-700 hover:underline">
                     {o.role}
                   </Link>
                 ) : (

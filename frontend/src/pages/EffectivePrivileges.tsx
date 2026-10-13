@@ -278,7 +278,7 @@ function Result({ data }: { data: EffectivePrivileges }) {
     <div className="space-y-6">
       <section className="rounded-lg border border-ink-200 bg-white px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">
-          <Link to="/roles/$name" params={{ name: role }} className="font-mono text-base font-semibold text-accent-700 hover:underline">
+          <Link to="/role/$name" params={{ name: role }} className="font-mono text-base font-semibold text-accent-700 hover:underline">
             {role}
           </Link>
           <RoleBadges role={data.role} compact />

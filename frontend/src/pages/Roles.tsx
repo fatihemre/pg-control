@@ -52,7 +52,7 @@ export function RolesPage() {
               {rows.map((r) => (
                 <tr key={r.oid} className="hover:bg-ink-50">
                   <td className="px-3 py-2 font-mono">
-                    <Link to="/roles/$name" params={{ name: r.name }} className="text-accent-700 hover:underline">
+                    <Link to="/role/$name" params={{ name: r.name }} className="text-accent-700 hover:underline">
                       {r.name}
                     </Link>
                   </td>
@@ -63,7 +63,7 @@ export function RolesPage() {
                     {r.member_of.map((m, i) => (
                       <span key={m}>
                         {i > 0 && ', '}
-                        <Link to="/roles/$name" params={{ name: m }} className="hover:underline">
+                        <Link to="/role/$name" params={{ name: m }} className="hover:underline">
                           {m}
                         </Link>
                       </span>

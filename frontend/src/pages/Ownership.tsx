@@ -99,7 +99,7 @@ export function OwnershipPage() {
                 onClick={() => setOwner(owner === o.name ? '' : o.name)}
               >
                 <td className="px-3 py-2 font-mono">
-                  <Link to="/roles/$name" params={{ name: o.name }} className="text-accent-700 hover:underline" onClick={(e) => e.stopPropagation()}>
+                  <Link to="/role/$name" params={{ name: o.name }} className="text-accent-700 hover:underline" onClick={(e) => e.stopPropagation()}>
                     {o.name}
                   </Link>
                   <span className="ml-2 inline-flex gap-1">
