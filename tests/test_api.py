@@ -108,3 +108,22 @@ def _port_open(port: int) -> bool:
     with socket.socket() as s:
         s.settimeout(0.5)
         return s.connect_ex(("127.0.0.1", port)) == 0
+
+
+async def test_delete_profile_detaches_audit_entries(admin: AsyncClient):
+    from sqlalchemy import select
+
+    from pgcontrol.db.models import AuditLog
+    from pgcontrol.db.session import get_sessionmaker
+
+    r = await admin.post("/api/profiles", json={"name": "gone", "host": "h", "username": "u"})
+    pid = r.json()["id"]
+    async with get_sessionmaker()() as db:
+        entry = AuditLog(profile_id=pid, action="apply", detail="{}")
+        db.add(entry)
+        await db.commit()
+        entry_id = entry.id
+    assert (await admin.delete(f"/api/profiles/{pid}")).status_code == 204
+    async with get_sessionmaker()() as db:
+        row = (await db.execute(select(AuditLog).where(AuditLog.id == entry_id))).scalar_one()
+        assert row.profile_id is None

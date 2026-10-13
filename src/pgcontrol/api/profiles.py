@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 
 from pgcontrol.api.deps import DB, Box, Pools, Profile, profile_params
@@ -10,7 +10,7 @@ from pgcontrol.api.schemas import (
     ProfileUpdate,
     ServerInfoOut,
 )
-from pgcontrol.db.models import ConnectionProfile, MetricSample
+from pgcontrol.db.models import AuditLog, ConnectionProfile, MetricSample
 from pgcontrol.pg.connection import ConnectionError_, ConnParams, test_connection
 from pgcontrol.security.auth import AdminUser, CurrentUser
 
@@ -94,8 +94,12 @@ async def update_profile(
 @router.delete("/{profile_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_profile(profile: Profile, db: DB, pools: Pools, _: AdminUser):
     await pools.drop(profile.id)
-    # SQLite does not enforce ON DELETE CASCADE unless foreign_keys is on; be explicit.
+    # SQLite does not enforce the FK actions unless foreign_keys is on; do them explicitly.
+    # Detach audit entries too: SQLite may reuse the id for the next profile.
     await db.execute(delete(MetricSample).where(MetricSample.profile_id == profile.id))
+    await db.execute(
+        update(AuditLog).where(AuditLog.profile_id == profile.id).values(profile_id=None)
+    )
     await db.delete(profile)
     await db.commit()
 
