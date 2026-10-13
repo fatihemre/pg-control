@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { DatabasePicker } from '../components/DatabasePicker'
 import { GranteeSelect } from '../components/GranteeSelect'
 import { NoInstance, QueryState } from '../components/QueryState'
-import { Badge, Button, Checkbox, EmptyRow, Field, Input, Modal, PageHeader, Select, Table } from '../components/ui'
+import { Alert, Badge, Button, Checkbox, EmptyRow, Field, Input, Modal, PageHeader, Select, Table } from '../components/ui'
 import { grantsQuery, schemasQuery, serverQuery, type ObjectGrants } from '../lib/catalog'
 import { privilegesFor, useBasket, type Change, type DefaultKind, type ObjectKind } from '../lib/changes'
 import { useDatabase, useInstance } from '../lib/instance'
@@ -195,16 +195,24 @@ function GrantEditor({
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [grantOption, setGrantOption] = useState(false)
   const [cascade, setCascade] = useState(false)
+  const [unchanged, setUnchanged] = useState(false)
 
+  // privilege -> grantable, for the picked grantee on this object
   const existing = useMemo(() => {
-    const set = new Set<string>()
-    if (object && grantee) for (const g of object.grants) if (g.grantee === grantee) set.add(g.privilege)
-    return set
+    const map = new Map<string, boolean>()
+    if (object && grantee) for (const g of object.grants) if (g.grantee === grantee) map.set(g.privilege, g.grantable)
+    return map
   }, [object, grantee])
+  const allGrantable = existing.size > 0 && [...existing.values()].every(Boolean)
 
   const pickGrantee = (g: string) => {
     setGrantee(g)
-    if (object) setSelected(new Set(object.grants.filter((x) => x.grantee === g).map((x) => x.privilege)))
+    setUnchanged(false)
+    if (object) {
+      const mine = object.grants.filter((x) => x.grantee === g)
+      setSelected(new Set(mine.map((x) => x.privilege)))
+      setGrantOption(mine.length > 0 && mine.every((x) => x.grantable))
+    }
   }
 
   const toggle = (p: string, v: boolean) => {
@@ -212,6 +220,7 @@ function GrantEditor({
     if (v) next.add(p)
     else next.delete(p)
     setSelected(next)
+    setUnchanged(false)
   }
 
   const submit = () => {
@@ -221,8 +230,17 @@ function GrantEditor({
     if (object) {
       const added = privileges.filter((p) => selected.has(p) && !existing.has(p))
       const removed = privileges.filter((p) => !selected.has(p) && existing.has(p))
-      if (added.length) ops.push({ op: 'grant', ...ref, grantee, privileges: added, grant_option: grantOption })
+      // a toggled grant option also applies to the privileges the role keeps
+      const kept = grantOption !== allGrantable ? privileges.filter((p) => selected.has(p) && existing.has(p)) : []
+      const upgrade = grantOption ? kept.filter((p) => !existing.get(p)) : []
+      const downgrade = grantOption ? [] : kept.filter((p) => existing.get(p))
+      if (added.length || upgrade.length) ops.push({ op: 'grant', ...ref, grantee, privileges: [...added, ...upgrade], grant_option: grantOption })
+      if (downgrade.length) ops.push({ op: 'revoke', ...ref, grantee, privileges: downgrade, grant_option_only: true, cascade })
       if (removed.length) ops.push({ op: 'revoke', ...ref, grantee, privileges: removed, cascade })
+      if (!ops.length) {
+        setUnchanged(true)
+        return
+      }
     } else {
       const privs = [...selected]
       if (!privs.length) return
@@ -254,7 +272,10 @@ function GrantEditor({
           <GranteeSelect value={grantee} onChange={pickGrantee} />
         </Field>
         {object && grantee && (
-          <p className="text-xs text-ink-500">Currently: {existing.size ? [...existing].join(', ') : 'no privileges'}. Tick to grant, untick to revoke.</p>
+          <p className="text-xs text-ink-500">
+            Currently: {existing.size ? [...existing].map(([p, g]) => p + (g ? '*' : '')).join(', ') : 'no privileges'}. Tick to grant, untick to revoke
+            {existing.size ? '; * = with grant option' : ''}.
+          </p>
         )}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {privileges.map((p) => (
@@ -262,9 +283,19 @@ function GrantEditor({
           ))}
         </div>
         <div className="flex flex-wrap gap-4">
-          {(object || mode === 'grant') && <Checkbox label="WITH GRANT OPTION (for new grants)" checked={grantOption} onChange={setGrantOption} />}
+          {(object || mode === 'grant') && (
+            <Checkbox
+              label={object ? 'WITH GRANT OPTION' : 'WITH GRANT OPTION (for new grants)'}
+              checked={grantOption}
+              onChange={(v) => {
+                setGrantOption(v)
+                setUnchanged(false)
+              }}
+            />
+          )}
           {(object || mode === 'revoke') && <Checkbox label="CASCADE (for revokes)" checked={cascade} onChange={setCascade} />}
         </div>
+        {unchanged && <Alert tone="error">No changes: the selection matches the current grants.</Alert>}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
             Cancel
