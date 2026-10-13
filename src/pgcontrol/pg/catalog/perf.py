@@ -151,6 +151,14 @@ async def list_statements(
         )
     except psycopg.errors.FeatureNotSupported as e:
         return Statements(False, str(e.diag.message_primary), [], 0.0)
+    except psycopg.errors.UndefinedColumn:  # extension objects older than the library
+        return Statements(
+            False,
+            f"pg_stat_statements {ext['extversion']} is too old for this page; run "
+            "ALTER EXTENSION pg_stat_statements UPDATE in this database.",
+            [],
+            0.0,
+        )
     total = float(rows[0].pop("grand_total") or 0) if rows else 0.0
     for r in rows[1:]:
         r.pop("grand_total", None)
