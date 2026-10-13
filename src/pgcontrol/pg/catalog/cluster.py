@@ -6,7 +6,9 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any
 
+import psycopg
 from psycopg import AsyncConnection
+from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 
 @dataclass
@@ -575,11 +577,13 @@ async def _subscriptions(conn: AsyncConnection, version: int) -> list[Subscripti
 
 
 def _redact(conninfo: str | None) -> str | None:
-    """Hide password=... in a libpq connection string."""
+    """Hide the password in a libpq connection string (key/value or URI form)."""
     if not conninfo:
-        return conninfo or None
-    parts = []
-    for tok in conninfo.split():
-        key, _, _ = tok.partition("=")
-        parts.append("password=***" if key.lower() == "password" else tok)
-    return " ".join(parts)
+        return None
+    try:
+        params = conninfo_to_dict(conninfo)
+    except psycopg.ProgrammingError:
+        return "(unparsable connection string hidden)"
+    if "password" in params:
+        params["password"] = "***"
+    return make_conninfo(**params)
