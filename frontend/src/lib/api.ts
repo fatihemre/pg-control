@@ -1,14 +1,25 @@
+type ValidationIssue = { loc?: (string | number)[]; msg: string }
+
+// FastAPI validation errors (422) arrive as a list of issues; show them as "field: message".
+function describe(detail: unknown): string {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail) && detail.every((d) => d && typeof d === 'object' && 'msg' in d)) {
+    return (detail as ValidationIssue[])
+      .map((d) => {
+        const field = (d.loc ?? []).filter((p) => p !== 'body').join('.')
+        return field ? `${field}: ${d.msg}` : d.msg
+      })
+      .join('; ')
+  }
+  if (detail && typeof detail === 'object' && 'message' in detail) return String((detail as { message: unknown }).message)
+  return JSON.stringify(detail)
+}
+
 export class ApiError extends Error {
   status: number
   detail: unknown
   constructor(status: number, detail: unknown) {
-    super(
-      typeof detail === 'string'
-        ? detail
-        : detail && typeof detail === 'object' && 'message' in detail
-          ? String((detail as { message: unknown }).message)
-          : JSON.stringify(detail),
-    )
+    super(describe(detail))
     this.status = status
     this.detail = detail
   }
