@@ -16,7 +16,7 @@ export function RolesPage() {
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return (query.data ?? []).filter((r) => (showSystem || !r.is_system) && (!q || r.name.toLowerCase().includes(q) || r.member_of.some((m) => m.includes(q))))
+    return (query.data ?? []).filter((r) => (showSystem || !r.is_system) && (!q || r.name.toLowerCase().includes(q) || r.member_of.some((m) => m.toLowerCase().includes(q))))
   }, [query.data, search, showSystem])
 
   return (
