@@ -88,6 +88,11 @@ export function PatroniPage() {
         </div>
       ) : s ? (
         <div className="space-y-6">
+          {status.isError && (
+            <Alert tone="error">
+              Refresh failed, showing the last known state: {status.error.message}
+            </Alert>
+          )}
           <Summary s={s} profileUrl={current.patroni_url} />
           {s.pause && <Alert tone="error">Cluster management is paused: Patroni will not perform automatic failover until it is resumed.</Alert>}
           {s.scheduled_switchover && (
