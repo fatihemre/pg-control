@@ -7,13 +7,18 @@
   --color-ink-900: #111a2e;
   --color-ink-800: #1a2540;
   --color-ink-700: #263352;
+  --color-ink-600: #40506e;
   --color-ink-500: #5b6b8a;
+  --color-ink-400: #8290a9;
   --color-ink-300: #aab5c9;
+  --color-ink-200: #c8cfdd;
   --color-ink-100: #e6eaf2;
   --color-ink-50: #f5f7fb;
+  --color-accent-700: #115e59;
   --color-accent-600: #0f766e;
   --color-accent-500: #14b8a6;
   --color-accent-100: #ccfbf1;
+  --color-accent-50: #f0fdfa;
 }
 
 html, body, #root { height: 100%; }
