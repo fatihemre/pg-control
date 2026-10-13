@@ -1,6 +1,7 @@
-import { QueryClient } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { Outlet, createRootRouteWithContext, createRoute, createRouter, redirect } from '@tanstack/react-router'
 import { Layout } from './components/Layout'
+import { ApiError } from './lib/api'
 import { meQuery } from './lib/auth'
 import { ConnectionsPage } from './pages/Connections'
 import { EffectivePrivilegesPage, type EffectiveSearch } from './pages/EffectivePrivileges'
@@ -27,7 +28,19 @@ import { ReplicationPage } from './pages/Replication'
 import { UsersPage } from './pages/Users'
 import { PatroniPage } from './pages/Patroni'
 
+// Any 401 means the session expired or was revoked: drop cached data and go to the login page.
+function onApiError(error: unknown) {
+  if (error instanceof ApiError && error.status === 401 && router.state.location.pathname !== '/login') {
+    queueMicrotask(() => {
+      queryClient.clear()
+      void router.navigate({ to: '/login' })
+    })
+  }
+}
+
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError: onApiError }),
+  mutationCache: new MutationCache({ onError: onApiError }),
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
 })
 

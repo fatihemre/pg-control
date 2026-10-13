@@ -69,10 +69,9 @@ def make_client(profile: ConnectionProfile, box: SecretBox, request: Request) ->
 
 
 def _http_error(exc: PatroniError) -> HTTPException:
+    # A 401 from Patroni stays a 502: our own 401 means the PgControl session ended.
     code = status.HTTP_502_BAD_GATEWAY
-    if exc.status == 401:
-        code = status.HTTP_401_UNAUTHORIZED
-    elif exc.status in (400, 404, 409, 412, 503):
+    if exc.status in (400, 404, 409, 412, 503):
         code = exc.status
     return HTTPException(code, f"Patroni: {exc.message}")
 
