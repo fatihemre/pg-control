@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Ban, RefreshCw, XOctagon } from 'lucide-react'
-import { useState } from 'react'
+import { Ban, ChevronDown, ChevronRight, RefreshCw, XOctagon } from 'lucide-react'
+import { Fragment, useState } from 'react'
 import { NoInstance, QueryState } from '../components/QueryState'
 import { Badge, Button, Checkbox, EmptyRow, Input, PageHeader, Select, Table } from '../components/ui'
 import { cx } from '../lib/cx'
@@ -10,6 +10,22 @@ import { useInstance } from '../lib/instance'
 import { fmtSeconds, truncate } from '../lib/format'
 
 const NO_SESSIONS: Session[] = []
+
+type Group = { key: string; sessions: Session[] }
+
+// Client sessions group by user@database; background workers by their backend type.
+const groupKey = (s: Session) => (s.user ? `${s.user}@${s.database ?? ''}` : (s.backend_type ?? 'other'))
+
+function groupSessions(sessions: Session[]): Group[] {
+  const groups = new Map<string, Session[]>()
+  for (const s of sessions) {
+    const key = groupKey(s)
+    groups.set(key, [...(groups.get(key) ?? []), s])
+  }
+  return [...groups.entries()]
+    .map(([key, sessions]) => ({ key, sessions }))
+    .sort((a, b) => b.sessions.length - a.sessions.length || a.key.localeCompare(b.key))
+}
 
 const STATE_TONE: Record<string, 'ok' | 'warn' | 'bad' | 'neutral'> = {
   active: 'ok',
@@ -27,6 +43,8 @@ export function ActivityPage() {
   const [state, setState] = useState('')
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<number | null>(null)
+  const [grouped, setGrouped] = useState(true)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
 
   const sessions = activity.data?.sessions ?? NO_SESSIONS
   const clients = sessions.filter((s) => s.backend_type === 'client backend')
@@ -45,6 +63,24 @@ export function ActivityPage() {
     blocked: clients.filter((s) => s.blocked_by.length > 0).length,
   }
   const blocked = activity.data?.blocked ?? []
+  const groups = grouped ? groupSessions(rows) : []
+  const toggleGroup = (key: string) =>
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  const sessionRow = (s: Session) => (
+    <SessionRow
+      key={s.pid}
+      s={s}
+      expanded={expanded === s.pid}
+      onToggle={() => setExpanded(expanded === s.pid ? null : s.pid)}
+      onCancel={() => basket.add({ op: 'cancel_backend', pid: s.pid }, null)}
+      onTerminate={() => basket.add({ op: 'terminate_backend', pid: s.pid }, null)}
+    />
+  )
 
   return (
     <>
@@ -118,6 +154,7 @@ export function ActivityPage() {
           )}
 
           <div className="flex flex-wrap items-center gap-3">
+            <Checkbox label="Group by user" checked={grouped} onChange={setGrouped} />
             <Checkbox label="Client backends only" checked={clientsOnly} onChange={setClientsOnly} />
             <Select className="w-56" value={state} onChange={(e) => setState(e.target.value)}>
               <option value="">Any state</option>
@@ -143,16 +180,17 @@ export function ActivityPage() {
               </tr>
             }
           >
-            {rows.map((s) => (
-              <SessionRow
-                key={s.pid}
-                s={s}
-                expanded={expanded === s.pid}
-                onToggle={() => setExpanded(expanded === s.pid ? null : s.pid)}
-                onCancel={() => basket.add({ op: 'cancel_backend', pid: s.pid }, null)}
-                onTerminate={() => basket.add({ op: 'terminate_backend', pid: s.pid }, null)}
-              />
-            ))}
+            {grouped
+              ? groups.map((g) => {
+                  const open = openGroups.has(g.key)
+                  return (
+                    <Fragment key={g.key}>
+                      <GroupRow group={g} open={open} onToggle={() => toggleGroup(g.key)} />
+                      {open && g.sessions.map(sessionRow)}
+                    </Fragment>
+                  )
+                })
+              : rows.map(sessionRow)}
             {rows.length === 0 && <EmptyRow colSpan={9}>No sessions match.</EmptyRow>}
           </Table>
           <p className="text-xs text-ink-500">
@@ -164,6 +202,32 @@ export function ActivityPage() {
         <QueryState query={activity} />
       )}
     </>
+  )
+}
+
+function GroupRow({ group, open, onToggle }: { group: Group; open: boolean; onToggle: () => void }) {
+  const states = new Map<string, number>()
+  for (const s of group.sessions) if (s.state) states.set(s.state, (states.get(s.state) ?? 0) + 1)
+  const blocked = group.sessions.some((s) => s.blocked_by.length > 0)
+  const Chevron = open ? ChevronDown : ChevronRight
+  return (
+    <tr className={cx('cursor-pointer bg-ink-50/60 hover:bg-ink-100', blocked && 'bg-red-50/60')} onClick={onToggle}>
+      <td colSpan={9} className="px-3 py-2">
+        <button type="button" className="inline-flex items-center gap-1.5 font-mono text-xs" aria-expanded={open}>
+          <Chevron className="h-3.5 w-3.5 text-ink-500" />
+          <span className="font-semibold text-ink-900">{group.key}</span>
+          <span className="text-ink-500">({group.sessions.length})</span>
+        </button>
+        <span className="ml-3 inline-flex flex-wrap gap-1 align-middle">
+          {[...states.entries()].map(([state, n]) => (
+            <Badge key={state} tone={STATE_TONE[state] ?? 'neutral'}>
+              {n} {state}
+            </Badge>
+          ))}
+          {blocked && <Badge tone="bad">blocked</Badge>}
+        </span>
+      </td>
+    </tr>
   )
 }
 
