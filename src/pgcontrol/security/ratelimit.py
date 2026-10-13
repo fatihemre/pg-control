@@ -25,6 +25,7 @@ class LoginLimiter:
         self.window = max(1, window)
         self.lockout = max(1, lockout)
         self._buckets: dict[str, _Bucket] = {}
+        self._last_prune = time.monotonic()
 
     def _bucket(self, key: str, now: float) -> _Bucket:
         b = self._buckets.setdefault(key, _Bucket())
@@ -37,14 +38,17 @@ class LoginLimiter:
         now = time.monotonic()
         wait = 0.0
         for key in keys:
-            b = self._bucket(key, now)
-            if b.locked_until > now:
+            # Only read here: creating buckets for every probe would let anyone grow the map.
+            b = self._buckets.get(key)
+            if b is not None and b.locked_until > now:
                 wait = max(wait, b.locked_until - now)
         return int(wait) + 1 if wait > 0 else 0
 
     def record_failure(self, *keys: str) -> bool:
         """Register a failed attempt; returns True when this failure triggered a lockout."""
         now = time.monotonic()
+        if now - self._last_prune >= self.window:
+            self.prune()
         locked = False
         for key in keys:
             b = self._bucket(key, now)
@@ -65,6 +69,7 @@ class LoginLimiter:
     def prune(self) -> None:
         """Drop idle buckets so the map cannot grow without bound."""
         now = time.monotonic()
+        self._last_prune = now
         for key in list(self._buckets):
             b = self._bucket(key, now)
             if not b.failures and b.locked_until <= now:

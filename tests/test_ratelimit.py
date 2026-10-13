@@ -29,6 +29,23 @@ def test_limiter_prune():
     assert lim._buckets == {}
 
 
+def test_limiter_does_not_grow_on_probes_and_prunes_itself(monkeypatch):
+    lim = LoginLimiter(max_attempts=5, window=60, lockout=60)
+    for i in range(100):
+        assert lim.retry_after(f"user:u{i}") == 0
+    assert lim._buckets == {}
+
+    clock = [1000.0]
+    monkeypatch.setattr("pgcontrol.security.ratelimit.time.monotonic", lambda: clock[0])
+    lim = LoginLimiter(max_attempts=5, window=60, lockout=60)
+    for i in range(100):
+        lim.record_failure(f"user:u{i}")
+    assert len(lim._buckets) == 100
+    clock[0] += 61  # every failure has left the window
+    lim.record_failure("user:new")
+    assert list(lim._buckets) == ["user:new"]
+
+
 async def test_login_lockout(client: AsyncClient):
     from pgcontrol.main import app
 
