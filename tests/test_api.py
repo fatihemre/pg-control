@@ -1,3 +1,6 @@
+import tomllib
+from pathlib import Path
+
 from httpx import AsyncClient
 
 
@@ -5,6 +8,12 @@ async def test_health(client: AsyncClient):
     r = await client.get("/api/health")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
+
+
+async def test_health_reports_project_version(client: AsyncClient):
+    pyproject = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
+    r = await client.get("/api/health")
+    assert r.json()["version"] == pyproject["project"]["version"]
 
 
 async def test_requires_auth(client: AsyncClient):
