@@ -1,10 +1,11 @@
 """PgControl account management (admin only) and self-service password change."""
 
+import asyncio
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 
 from pgcontrol.api.deps import DB
@@ -60,12 +61,16 @@ def _check_role(role: str) -> None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Unknown role")
 
 
+# Demoting or deleting an admin is check-then-act. Serialise it within the process, and lock
+# the admin rows (FOR UPDATE, PostgreSQL metadata DB) so two admins cannot remove each other.
+_admin_change = asyncio.Lock()
+
+
 async def _admins_left(db, excluding: int) -> int:
-    return (
-        await db.execute(
-            select(func.count()).select_from(User).where(User.role == "admin", User.id != excluding)
-        )
-    ).scalar_one()
+    ids = (
+        await db.execute(select(User.id).where(User.role == "admin").with_for_update())
+    ).scalars()
+    return sum(1 for i in ids if i != excluding)
 
 
 @router.get("", response_model=list[UserAdminOut])
@@ -89,6 +94,11 @@ async def create_user(body: UserCreate, db: DB, _: AdminUser):
 
 @router.put("/{user_id}", response_model=UserAdminOut)
 async def update_user(user_id: int, body: UserUpdate, db: DB, admin: AdminUser):
+    async with _admin_change:
+        return await _update_user(user_id, body, db, admin)
+
+
+async def _update_user(user_id: int, body: UserUpdate, db, admin) -> UserAdminOut:
     user = await db.get(User, user_id)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
@@ -113,6 +123,11 @@ async def update_user(user_id: int, body: UserUpdate, db: DB, admin: AdminUser):
 async def delete_user(user_id: int, db: DB, admin: AdminUser):
     if user_id == admin.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "You cannot delete your own account")
+    async with _admin_change:
+        await _delete_user(user_id, db)
+
+
+async def _delete_user(user_id: int, db) -> None:
     user = await db.get(User, user_id)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")

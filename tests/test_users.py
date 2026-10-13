@@ -80,3 +80,45 @@ async def test_users_requires_admin(admin: AsyncClient):
     await admin.post("/api/auth/logout")
     await admin.post("/api/auth/login", json={"username": "v", "password": "viewer-pass-1"})
     assert (await admin.get("/api/users")).status_code == 403
+
+
+async def test_two_admins_cannot_demote_each_other(admin: AsyncClient):
+    import asyncio
+
+    from httpx import ASGITransport
+    from sqlalchemy import delete, select, update
+
+    from pgcontrol.db.models import Session, User
+    from pgcontrol.db.session import get_sessionmaker
+    from pgcontrol.main import app
+
+    r = await admin.get("/api/users")
+    me = next(u for u in r.json() if u["username"] == "admin")
+    for u in r.json():  # admin must be the only admin before the race
+        if u["role"] == "admin" and u["id"] != me["id"]:
+            await admin.put(f"/api/users/{u['id']}", json={"role": "viewer"})
+    r = await admin.post(
+        "/api/users", json={"username": "racer", "password": "racer-pass-1", "role": "admin"}
+    )
+    other = r.json()["id"]
+    transport = ASGITransport(app=app)
+    try:
+        async with AsyncClient(transport=transport, base_url="http://pgcontrol.test") as c2:
+            r = await c2.post(
+                "/api/auth/login", json={"username": "racer", "password": "racer-pass-1"}
+            )
+            assert r.status_code == 200
+            results = await asyncio.gather(
+                admin.put(f"/api/users/{other}", json={"role": "viewer"}),
+                c2.put(f"/api/users/{me['id']}", json={"role": "viewer"}),
+            )
+        assert sorted(r.status_code for r in results) in ([200, 400], [200, 403])
+        async with get_sessionmaker()() as db:
+            admins = (await db.execute(select(User.id).where(User.role == "admin"))).all()
+        assert len(admins) == 1
+    finally:
+        async with get_sessionmaker()() as db:
+            await db.execute(update(User).where(User.id == me["id"]).values(role="admin"))
+            await db.execute(delete(Session).where(Session.user_id == other))
+            await db.execute(delete(User).where(User.id == other))
+            await db.commit()
