@@ -36,7 +36,7 @@ function MembershipTable({ rows, column }: { rows: Membership[]; column: string 
       </thead>
       <tbody>
         {rows.map((m) => (
-          <tr key={m.role} className="border-t border-ink-100">
+          <tr key={`${m.role}/${m.grantor ?? ""}`} className="border-t border-ink-100">
             <td className="py-1 pr-3 font-mono">
               <Link to="/roles/$name" params={{ name: m.role }} className="text-accent-700 hover:underline">
                 {m.role}

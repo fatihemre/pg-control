@@ -65,6 +65,22 @@ async def test_list_roles(conn):
     ]
 
 
+async def test_list_roles_dedupes_memberships_per_grantor(conn):
+    if await server_version_num(conn) < 160000:
+        pytest.skip("one membership per grantor is PG16+")
+    await conn.execute("DROP ROLE IF EXISTS dup_child, dup_admin, dup_parent")
+    try:
+        await conn.execute("CREATE ROLE dup_parent; CREATE ROLE dup_child; CREATE ROLE dup_admin")
+        await conn.execute("GRANT dup_parent TO dup_admin WITH ADMIN OPTION")
+        await conn.execute("GRANT dup_parent TO dup_child")
+        await conn.execute("GRANT dup_parent TO dup_child GRANTED BY dup_admin")
+        all_roles = {r.name: r for r in await roles.list_roles(conn)}
+        assert all_roles["dup_child"].member_of == ["dup_parent"]
+        assert all_roles["dup_parent"].members == ["dup_admin", "dup_child"]
+    finally:
+        await conn.execute("DROP ROLE IF EXISTS dup_child, dup_admin, dup_parent")
+
+
 async def test_role_detail_closure(conn):
     d = await roles.get_role_detail(conn, "reservation_admin")
     assert d is not None

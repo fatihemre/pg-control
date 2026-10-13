@@ -552,6 +552,8 @@ async def _subscriptions(conn: AsyncConnection, version: int) -> list[Subscripti
     else:
         errors = "NULL::bigint AS apply_error_count, NULL::bigint AS sync_error_count"
         stats_join = ""
+    # PG16+ lists parallel apply workers with relid NULL too; keep only the leader.
+    leader = "AND s.leader_pid IS NULL" if version >= 160000 else ""
     cur = await conn.execute(
         f"""
         SELECT u.subname AS name, u.subowner::regrole::text AS owner, u.subenabled AS enabled,
@@ -562,7 +564,7 @@ async def _subscriptions(conn: AsyncConnection, version: int) -> list[Subscripti
                (SELECT count(*) FROM pg_subscription_rel r
                  WHERE r.srsubid = u.oid AND r.srsubstate <> 'r') AS tables_not_ready
         FROM pg_subscription u
-        LEFT JOIN pg_stat_subscription s ON s.subid = u.oid AND s.relid IS NULL
+        LEFT JOIN pg_stat_subscription s ON s.subid = u.oid AND s.relid IS NULL {leader}
         {stats_join}
         WHERE u.subdbid = (SELECT oid FROM pg_database WHERE datname = current_database())
         ORDER BY u.subname

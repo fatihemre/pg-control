@@ -69,10 +69,10 @@ ROLE_COLUMNS = sql.SQL(
     r.rolcanlogin, r.rolreplication, r.rolbypassrls, r.rolconnlimit,
     r.rolvaliduntil, coalesce(r.rolconfig, '{}') AS rolconfig,
     (r.rolvaliduntil IS NOT NULL AND r.rolvaliduntil < now()) AS expired,
-    (SELECT coalesce(array_agg(p.rolname ORDER BY p.rolname), '{}')
+    (SELECT coalesce(array_agg(DISTINCT p.rolname ORDER BY p.rolname), '{}')
        FROM pg_auth_members m JOIN pg_roles p ON p.oid = m.roleid
       WHERE m.member = r.oid) AS member_of,
-    (SELECT coalesce(array_agg(p.rolname ORDER BY p.rolname), '{}')
+    (SELECT coalesce(array_agg(DISTINCT p.rolname ORDER BY p.rolname), '{}')
        FROM pg_auth_members m JOIN pg_roles p ON p.oid = m.member
       WHERE m.roleid = r.oid) AS members
     """
