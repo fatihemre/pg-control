@@ -61,6 +61,44 @@ derived from it, and the `/data` volume holds PgControl's own metadata (accounts
 connection profiles, audit log). All settings are listed in
 [docs/configuration.md](https://github.com/fatihemre/pg-control/blob/main/docs/configuration.md).
 
+## Upgrading
+
+All state lives in the `/data` volume (or the PostgreSQL metadata database), so upgrading
+means replacing the container. Migrations run automatically at startup. Read
+[CHANGELOG.md](https://github.com/fatihemre/pg-control/blob/main/CHANGELOG.md) first.
+
+**Keep the same `PGCONTROL_SECRET_KEY`.** The quick start command generates it inline, so
+the only copy is in the running container. Save it before removing the container;
+a new key cannot decrypt the stored instance passwords:
+
+```sh
+docker inspect pgcontrol --format '{{range .Config.Env}}{{println .}}{{end}}' | grep PGCONTROL_SECRET_KEY
+```
+
+Then back up, pull the new version and recreate the container with the saved key:
+
+```sh
+docker exec pgcontrol /app/.venv/bin/pgcontrol db backup   # SQLite only; written to /data/backups
+docker pull fatihemre/pgcontrol:0.3.0
+docker stop pgcontrol && docker rm pgcontrol
+docker run -d --name pgcontrol --restart unless-stopped -p 7420:7420 \
+  -e PGCONTROL_SECRET_KEY='<saved key>' \
+  -v pgcontrol-data:/data \
+  fatihemre/pgcontrol:0.3.0
+curl -s localhost:7420/api/health   # {"status":"ok","version":"0.3.0"}
+```
+
+Pinning a version tag instead of `latest` makes the running version explicit and rolling
+back easy: recreate the container with the previous tag and the same key. Rolling back
+across a release that added migrations needs the backup (`pgcontrol db restore`).
+
+With Compose the key is already in `.env`:
+
+```sh
+git pull
+docker compose pull && docker compose up -d   # or: docker compose up -d --build
+```
+
 ## Ports
 
 PgControl uses the `74xx` range to avoid clashing with common defaults:
