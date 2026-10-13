@@ -18,10 +18,16 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    groups:
+      docker:
+        patterns: ["*"]
     ignore:
       # Base images are bumped deliberately (Python / Node LTS), not by Dependabot.
       - dependency-name: python
