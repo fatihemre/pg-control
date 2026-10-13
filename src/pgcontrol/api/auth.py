@@ -20,7 +20,7 @@ from pgcontrol.security.auth import (
     purge_expired_sessions,
 )
 from pgcontrol.security.oidc import OidcClient, OidcError
-from pgcontrol.security.passwords import verify_password
+from pgcontrol.security.passwords import verify_dummy_password, verify_password
 from pgcontrol.security.ratelimit import LoginLimiter
 
 log = logging.getLogger("pgcontrol.auth")
@@ -60,11 +60,11 @@ async def login(body: LoginRequest, db: DB, request: Request, response: Response
     user = (
         await db.execute(select(User).where(User.username == body.username))
     ).scalar_one_or_none()
-    if (
-        user is None
-        or user.password_hash is None
-        or not verify_password(user.password_hash, body.password)
-    ):
+    if user is None or user.password_hash is None:
+        ok = verify_dummy_password(body.password)
+    else:
+        ok = verify_password(user.password_hash, body.password)
+    if not ok:
         log.warning("Failed login for %r from %s", body.username, ip)
         if limiter and limiter.record_failure(*keys):
             log.warning("Login locked for %r / %s after repeated failures", body.username, ip)

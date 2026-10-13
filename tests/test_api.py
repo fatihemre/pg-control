@@ -27,6 +27,17 @@ async def test_login_bad_password(client: AsyncClient):
     assert r.status_code == 401
 
 
+async def test_login_unknown_user_checks_a_password_too(client: AsyncClient, monkeypatch):
+    from pgcontrol.api import auth
+
+    checked = []
+    real = auth.verify_dummy_password
+    monkeypatch.setattr(auth, "verify_dummy_password", lambda pw: checked.append(pw) or real(pw))
+    r = await client.post("/api/auth/login", json={"username": "nobody", "password": "nope"})
+    assert r.status_code == 401
+    assert checked == ["nope"]
+
+
 async def test_login_logout(admin: AsyncClient):
     me = await admin.get("/api/auth/me")
     assert me.status_code == 200
