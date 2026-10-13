@@ -8,7 +8,7 @@
 
 ## Checklist
 
-- [ ] `uv run ruff check src tests alembic` and `uv run pytest` pass
+- [ ] `uv run ruff check src tests alembic`, `uv run ruff format --check src tests alembic` and `uv run pytest` pass
 - [ ] `npm run lint` and `npm run build` pass in `frontend/` (if the UI changed)
 - [ ] Catalog queries were checked on PostgreSQL 14 through 18 (if they changed)
 - [ ] Writes to managed instances go through Plan → SQL preview → Apply and are audited

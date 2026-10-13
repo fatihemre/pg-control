@@ -13,7 +13,7 @@ catalog views and PostgreSQL-version compatibility fixes are all welcome.
 - **Never build SQL identifiers by string formatting.** Use `psycopg.sql.Identifier` /
   `psycopg.sql.SQL` and parameters.
 - **Writes to managed instances go through Plan → SQL preview → Apply** and are recorded
-  in `audit_log`. New change types belong in `pgcontrol.changes`, not in ad-hoc endpoints.
+  in `audit_log`. New change types belong in `pgcontrol.pg.changes`, not in ad-hoc endpoints.
 - Keep the UI in English and keep it small: no new UI libraries without a discussion.
 
 ## Development setup
