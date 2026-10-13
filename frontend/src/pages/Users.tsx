@@ -23,9 +23,11 @@ export function UsersPage() {
 
   const setRole = useMutation({
     mutationFn: ({ id, role }: { id: number; role: Role }) => api.put<AdminUser>(`/api/users/${id}`, { role }),
-    onSuccess: () => {
+    onSuccess: (_, { id }) => {
       setError(null)
       invalidate()
+      // demoting yourself takes effect at once; refresh what the UI thinks you may do
+      if (id === me.data?.id) qc.invalidateQueries({ queryKey: ['me'] })
     },
     onError: (e) => setError(e.message),
   })
@@ -91,7 +93,10 @@ export function UsersPage() {
                 )}
               </td>
               <td className="px-3 py-2">
-                <Select value={u.role} onChange={(e) => setRole.mutate({ id: u.id, role: e.target.value as Role })} disabled={setRole.isPending}>
+                <Select value={u.role} onChange={(e) => {
+                    const role = e.target.value as Role
+                    if (!self || confirm(`Change your own role to ${role}? You will lose admin access.`)) setRole.mutate({ id: u.id, role })
+                  }} disabled={setRole.isPending}>
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
                       {r}
