@@ -9,7 +9,8 @@ import { useInstance } from '../lib/instance'
 
 export function AuditPage() {
   const { current } = useInstance()
-  const [onlyCurrent, setOnlyCurrent] = useState(true)
+  // all entries by default: sign-in lockouts and account changes belong to no instance
+  const [onlyCurrent, setOnlyCurrent] = useState(false)
   const query = useQuery(auditQuery(onlyCurrent && current ? current.id : undefined))
   const [open, setOpen] = useState<number | null>(null)
 
@@ -17,7 +18,7 @@ export function AuditPage() {
     <>
       <PageHeader
         title="Audit log"
-        actions={<Checkbox label={`Only ${current?.name ?? 'current instance'}`} checked={onlyCurrent} onChange={setOnlyCurrent} />}
+        actions={current && <Checkbox label={`Only ${current.name}`} checked={onlyCurrent} onChange={setOnlyCurrent} />}
       />
       {query.isSuccess ? (
         <Table
