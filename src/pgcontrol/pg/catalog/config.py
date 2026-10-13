@@ -83,16 +83,18 @@ class HbaRule:
 
 async def list_hba_rules(conn: AsyncConnection, version: int) -> list[HbaRule] | None:
     """Rows of pg_hba_file_rules (PG16+ adds rule_number/file_name); None if not readable."""
-    extra = (
-        "rule_number, file_name,"
-        if version >= 160000
-        else "NULL AS rule_number, NULL AS file_name,"
-    )
+    if version >= 160000:
+        # line_number restarts in every included file; rule_number is the match order
+        # (NULL for lines with errors, which never match).
+        extra = "rule_number, file_name,"
+        order = "rule_number NULLS LAST, file_name, line_number"
+    else:
+        extra = "NULL AS rule_number, NULL AS file_name,"
+        order = "line_number"
     try:
         cur = await conn.execute(
             f"SELECT {extra} line_number, type, database, user_name, address, netmask, "
-            "auth_method, options, error FROM pg_hba_file_rules "
-            "ORDER BY line_number"
+            f"auth_method, options, error FROM pg_hba_file_rules ORDER BY {order}"
         )
         return [HbaRule(**r) for r in await cur.fetchall()]
     except psycopg.errors.InsufficientPrivilege:
