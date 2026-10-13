@@ -6,6 +6,50 @@ All notable changes to PgControl are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-13
+
+### Added
+
+- Activity groups sessions by `user@database` with a session count and per-state badges;
+  click a group to expand it. Untick "Group by user" for the flat list.
+- A 404 page for unknown URLs (replaces the old "Coming soon" placeholder).
+
+### Changed
+
+- Role detail pages moved from `/roles/<name>` to `/role/<name>`, so roles named
+  `memberships` or `attributes` open correctly.
+- The audit log shows every entry by default, including sign-in lockouts; the
+  instance filter appears only when an instance is selected.
+- The permissions editor applies a changed WITH GRANT OPTION to privileges the role
+  already has, and says "No changes" instead of closing silently.
+- An expired or revoked session sends the browser to the login page.
+- `/api/health` reports the installed package version.
+- Release images: `latest` moves only on stable version tags; manual runs push a
+  `sha-<commit>` tag. The image pins uv and gives the health check a start period.
+
+### Fixed
+
+- Two admins demoting each other at the same time could leave no admin.
+- Login response time no longer reveals whether a username exists.
+- The login rate limiter no longer grows without bound.
+- Connection pools open without a global lock; editing a profile while it connects
+  no longer keeps the old pool.
+- Passwords are redacted in every libpq connection string form (Patroni / replication
+  views).
+- "Test connection" while editing tests the edited settings, not the saved ones.
+- An empty connection limit field keeps the current limit instead of sending 0.
+- Deleting an instance keeps its audit entries.
+- PG16+: memberships and subscriptions appear once even with several grantors / parallel
+  apply workers; `pg_hba` rules are listed in match order.
+- INHERIT/SET membership options are rejected before PostgreSQL 16 instead of being
+  ignored.
+- Effective privileges explain access the database owner gets through
+  `pg_database_owner`.
+- Statements explain an outdated `pg_stat_statements` extension instead of failing.
+- Validation errors are shown as readable field messages; role search matches
+  memberships case-insensitively; Patroni refresh errors are shown above the last known
+  state; editing your own admin role asks for confirmation.
+
 ## [0.2.0] - 2026-08-29
 
 ### Changed
@@ -46,6 +90,7 @@ First public release.
   `pgcontrol db upgrade | current | backup | restore` CLI.
 - Login rate limiting, security headers, reverse-proxy support, single Docker image.
 
-[Unreleased]: https://github.com/fatihemre/pg-control/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/fatihemre/pg-control/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/fatihemre/pg-control/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/fatihemre/pg-control/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/fatihemre/pg-control/releases/tag/v0.1.0
