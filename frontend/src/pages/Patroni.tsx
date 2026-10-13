@@ -373,8 +373,9 @@ function OperationModal({ op, s, profileId, onClose }: { op: Op; s: PatroniStatu
           return api.delete(`${base}/members/${encodeURIComponent(op.member.name)}/restart`)
       }
     },
-    onSuccess: (r) => {
-      setResult(r)
+    onSuccess: setResult,
+    // failed operations are audited as well, and may still have changed the cluster
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['profile', profileId, 'patroni'] })
       qc.invalidateQueries({ queryKey: ['audit'] })
     },
